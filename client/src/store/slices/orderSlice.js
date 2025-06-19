@@ -13,11 +13,22 @@ export const createOrder = createAsyncThunk(
   }
 );
 
-export const fetchOrders = createAsyncThunk(
-  'orders/fetchOrders',
+export const fetchMyOrders = createAsyncThunk(
+  'orders/fetchMyOrders',
   async (_, { rejectWithValue }) => {
     try {
       return await orderService.getMyOrders();
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch orders');
+    }
+  }
+);
+
+export const fetchAllOrders = createAsyncThunk(
+  'orders/fetchAllOrders',
+  async (_, { rejectWithValue }) => {
+    try {
+      return await orderService.getAll();
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch orders');
     }
@@ -62,18 +73,24 @@ const initialState = {
   order: null,
   loading: false,
   error: null,
+  success: false
 };
 
-export const orderSlice = createSlice({
+const orderSlice = createSlice({
   name: 'orders',
   initialState,
   reducers: {
-    clearError: (state) => {
+    clearOrderError: (state) => {
       state.error = null;
     },
-    clearOrder: (state) => {
+    resetOrder: (state) => {
       state.order = null;
+      state.success = false;
     },
+    resetOrders: (state) => {
+      state.orders = [];
+      state.success = false;
+    }
   },
   extraReducers: (builder) => {
     builder
@@ -84,26 +101,40 @@ export const orderSlice = createSlice({
       })
       .addCase(createOrder.fulfilled, (state, action) => {
         state.loading = false;
+        state.success = true;
         state.order = action.payload;
       })
       .addCase(createOrder.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-      // Fetch Orders
-      .addCase(fetchOrders.pending, (state) => {
+      // Fetch My Orders
+      .addCase(fetchMyOrders.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchOrders.fulfilled, (state, action) => {
+      .addCase(fetchMyOrders.fulfilled, (state, action) => {
         state.loading = false;
         state.orders = action.payload;
       })
-      .addCase(fetchOrders.rejected, (state, action) => {
+      .addCase(fetchMyOrders.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-      // Fetch Single Order
+      // Fetch All Orders (Admin)
+      .addCase(fetchAllOrders.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchAllOrders.fulfilled, (state, action) => {
+        state.loading = false;
+        state.orders = action.payload;
+      })
+      .addCase(fetchAllOrders.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Fetch Order By ID
       .addCase(fetchOrderById.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -116,7 +147,7 @@ export const orderSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-      // Update Order to Paid
+      // Update Order To Paid
       .addCase(updateOrderToPaid.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -124,12 +155,16 @@ export const orderSlice = createSlice({
       .addCase(updateOrderToPaid.fulfilled, (state, action) => {
         state.loading = false;
         state.order = action.payload;
+        const index = state.orders.findIndex(o => o._id === action.payload._id);
+        if (index !== -1) {
+          state.orders[index] = action.payload;
+        }
       })
       .addCase(updateOrderToPaid.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-      // Update Order to Delivered
+      // Update Order To Delivered
       .addCase(updateOrderToDelivered.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -137,13 +172,17 @@ export const orderSlice = createSlice({
       .addCase(updateOrderToDelivered.fulfilled, (state, action) => {
         state.loading = false;
         state.order = action.payload;
+        const index = state.orders.findIndex(o => o._id === action.payload._id);
+        if (index !== -1) {
+          state.orders[index] = action.payload;
+        }
       })
       .addCase(updateOrderToDelivered.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });
-  },
+  }
 });
 
-export const { clearError, clearOrder } = orderSlice.actions;
+export const { clearOrderError, resetOrder, resetOrders } = orderSlice.actions;
 export default orderSlice.reducer;

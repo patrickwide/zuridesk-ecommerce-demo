@@ -1,118 +1,122 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import productService from '../../services/productService';
 
-// Load cart from localStorage
-const loadCartFromStorage = () => {
-  try {
-    const cartItems = localStorage.getItem('cartItems');
-    return cartItems ? JSON.parse(cartItems) : [];
-  } catch (error) {
-    console.error('Error loading cart from storage:', error);
-    return [];
-  }
-};
+// Get cart from localStorage
+const cartFromStorage = localStorage.getItem('cart')
+  ? JSON.parse(localStorage.getItem('cart'))
+  : { cartItems: [], shippingAddress: {}, paymentMethod: '' };
 
-// Save cart to localStorage
-const saveCartToStorage = (items) => {
-  try {
-    localStorage.setItem('cartItems', JSON.stringify(items));
-  } catch (error) {
-    console.error('Error saving cart to storage:', error);
-  }
-};
-
-// Async thunk to add item to cart (validates stock first)
-export const addToCart = createAsyncThunk(
-  'cart/addToCart',
-  async ({ productId, quantity = 1 }, { rejectWithValue, getState }) => {
+// Async thunk for validating stock before adding to cart
+export const validateAndAddToCart = createAsyncThunk(
+  'cart/validateAndAddToCart',
+  async ({ productId, qty }, { rejectWithValue, getState }) => {
     try {
       const product = await productService.getById(productId);
       
-      if (product.countInStock < quantity) {
+      // Validate stock
+      if (product.countInStock < qty) {
+        return rejectWithValue('Product is out of stock');
+      }
+
+      // Calculate total quantity including existing items
+      const existingItem = getState().cart.cartItems.find(
+        (x) => x._id === productId
+      );
+      const totalQty = (existingItem ? existingItem.qty : 0) + qty;
+
+      if (product.countInStock < totalQty) {
         return rejectWithValue('Not enough items in stock');
       }
 
       return {
-        id: product._id,
+        _id: product._id,
         name: product.name,
         image: product.image,
         price: product.price,
         countInStock: product.countInStock,
-        quantity,
+        qty
       };
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to add item to cart');
+      return rejectWithValue(error.response?.data?.message || 'Failed to add to cart');
     }
   }
 );
 
-const initialState = {
-  items: loadCartFromStorage(),
-  loading: false,
-  error: null,
-};
-
-export const cartSlice = createSlice({
+const cartSlice = createSlice({
   name: 'cart',
-  initialState,
+  initialState: cartFromStorage,
   reducers: {
-    removeFromCart: (state, action) => {
-      state.items = state.items.filter(item => item.id !== action.payload);
-      saveCartToStorage(state.items);
-    },
-    updateQuantity: (state, action) => {
-      const { id, quantity } = action.payload;
-      const item = state.items.find(item => item.id === id);
-      if (item) {
-        if (quantity <= item.countInStock) {
-          item.quantity = quantity;
-          saveCartToStorage(state.items);
-        }
+    addToCart: (state, action) => {
+      const item = action.payload;
+      const existingItem = state.cartItems.find((x) => x._id === item._id);
+
+      if (existingItem) {
+        state.cartItems = state.cartItems.map((x) =>
+          x._id === existingItem._id ? item : x
+        );
+      } else {
+        state.cartItems.push(item);
       }
+      localStorage.setItem('cart', JSON.stringify(state));
+    },
+    removeFromCart: (state, action) => {
+      state.cartItems = state.cartItems.filter((x) => x._id !== action.payload);
+      localStorage.setItem('cart', JSON.stringify(state));
+    },
+    updateCartItemQty: (state, action) => {
+      const { id, qty } = action.payload;
+      const item = state.cartItems.find((x) => x._id === id);
+      if (item) {
+        item.qty = qty;
+      }
+      localStorage.setItem('cart', JSON.stringify(state));
+    },
+    saveShippingAddress: (state, action) => {
+      state.shippingAddress = action.payload;
+      localStorage.setItem('cart', JSON.stringify(state));
+    },
+    savePaymentMethod: (state, action) => {
+      state.paymentMethod = action.payload;
+      localStorage.setItem('cart', JSON.stringify(state));
     },
     clearCart: (state) => {
-      state.items = [];
-      saveCartToStorage(state.items);
-    },
-    clearError: (state) => {
-      state.error = null;
-    },
+      state.cartItems = [];
+      localStorage.setItem('cart', JSON.stringify(state));
+    }
   },
   extraReducers: (builder) => {
     builder
-      .addCase(addToCart.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(addToCart.fulfilled, (state, action) => {
-        state.loading = false;
-        const existingItem = state.items.find(item => item.id === action.payload.id);
-        
+      .addCase(validateAndAddToCart.fulfilled, (state, action) => {
+        const item = action.payload;
+        const existingItem = state.cartItems.find((x) => x._id === item._id);
+
         if (existingItem) {
-          const newQuantity = existingItem.quantity + action.payload.quantity;
-          if (newQuantity <= existingItem.countInStock) {
-            existingItem.quantity = newQuantity;
-          }
+          state.cartItems = state.cartItems.map((x) =>
+            x._id === existingItem._id ? item : x
+          );
         } else {
-          state.items.push(action.payload);
+          state.cartItems.push(item);
         }
-        
-        saveCartToStorage(state.items);
-      })
-      .addCase(addToCart.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
+        localStorage.setItem('cart', JSON.stringify(state));
       });
-  },
+  }
 });
 
-export const { removeFromCart, updateQuantity, clearCart, clearError } = cartSlice.actions;
+export const {
+  addToCart,
+  removeFromCart,
+  updateCartItemQty,
+  saveShippingAddress,
+  savePaymentMethod,
+  clearCart
+} = cartSlice.actions;
 
-// Selectors
-export const selectCartItems = (state) => state.cart.items;
-export const selectCartTotal = (state) => 
-  state.cart.items.reduce((total, item) => total + item.price * item.quantity, 0);
-export const selectCartItemsCount = (state) => 
-  state.cart.items.reduce((count, item) => count + item.quantity, 0);
+// Selector for cart total
+export const selectCartTotal = (state) =>
+  state.cart.cartItems.reduce((total, item) => total + item.price * item.qty, 0);
+
+// Selector for cart items count
+export const selectCartItemsCount = (state) =>
+  state.cart.cartItems.reduce((count, item) => count + item.qty, 0);
 
 export default cartSlice.reducer;
