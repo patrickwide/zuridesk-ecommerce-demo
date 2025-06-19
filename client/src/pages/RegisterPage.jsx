@@ -1,216 +1,256 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { useNavigate, Link } from 'react-router-dom';
+import { Formik, Form } from 'formik';
 import {
   Box,
   Button,
   FormControl,
   FormLabel,
   Input,
-  Stack,
-  Text,
+  VStack,
+  FormErrorMessage,
+  useToast,
   Heading,
+  Text,
   useColorModeValue,
   Center,
   Icon,
   Divider,
+  Stack,
+  Container,
 } from '@chakra-ui/react';
-import { Link as RouterLink } from 'react-router-dom';
+import { registerSchema } from '../utils/validationSchemas';
+import FormContainer from '../components/FormContainer';
+import { setCredentials } from '../store/slices/authSlice';
 
 const RegisterPage = () => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const toast = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleRegister = async (values, { setSubmitting }) => {
+    try {
+      setIsLoading(true);
+      // API call will go here
+      // For now, just simulate registration
+      dispatch(setCredentials({
+        user: { email: values.email, name: values.name },
+        token: 'dummy-token'
+      }));
+      toast({
+        title: 'Registration successful',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      navigate('/');
+    } catch (error) {
+      toast({
+        title: 'Registration failed',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
+      setSubmitting(false);
+    }
+  };
+
   return (
     <Box
       minH="100vh"
       bg={useColorModeValue('gray.50', 'gray.900')}
-      py={12}
+      py={{ base: 8, md: 16 }}
       px={4}
     >
-      <Center>
-        <Stack spacing={8} mx="auto" maxW="lg" w="full">
-          <Stack align="center" spacing={2}>
+      <Container maxW="md" py={{ base: 6, md: 8 }}>
+        <Stack spacing={8} w="full">
+          <Stack align="center" spacing={{ base: 2, md: 3 }}>
             <Heading
-              fontSize="4xl"
+              fontSize={{ base: '2xl', md: '3xl' }}
               color={useColorModeValue('gray.900', 'white')}
             >
               Create your account
             </Heading>
-            <Text fontSize="lg" color={useColorModeValue('gray.600', 'gray.400')}>
+            <Text fontSize={{ base: 'md', md: 'lg' }} color={useColorModeValue('gray.600', 'gray.400')}>
               to start shopping with ZuriDesk
             </Text>
           </Stack>
 
           <Box
-            rounded="lg"
+            py={8}
+            px={{ base: 6, md: 8 }}
             bg={useColorModeValue('white', 'gray.800')}
-            boxShadow="lg"
-            p={8}
-            w="full"
+            boxShadow="xl"
+            rounded="xl"
             borderWidth="1px"
             borderColor={useColorModeValue('gray.200', 'gray.700')}
           >
-            <Stack spacing={4}>
-              <Stack direction={{ base: 'column', sm: 'row' }} spacing={4}>
-                <FormControl id="firstName">
-                  <FormLabel>First Name</FormLabel>
-                  <Input
-                    type="text"
-                    bg={useColorModeValue('white', 'gray.700')}
-                    borderColor={useColorModeValue('gray.300', 'gray.600')}
-                    _hover={{
-                      borderColor: useColorModeValue('gray.400', 'gray.500')
-                    }}
-                    _focus={{
-                      borderColor: 'blue.500',
-                      boxShadow: 'outline'
-                    }}
-                  />
-                </FormControl>
+            <Formik
+              initialValues={{
+                name: '',
+                email: '',
+                password: '',
+                confirmPassword: '',
+              }}
+              validationSchema={registerSchema}
+              onSubmit={handleRegister}
+            >
+              {({ handleSubmit, errors, touched, handleChange, handleBlur }) => (
+                <Form onSubmit={handleSubmit}>
+                  <VStack spacing={6}>
+                    <FormControl isInvalid={errors.name && touched.name}>
+                      <FormLabel fontSize="sm">Name</FormLabel>
+                      <Input
+                        name="name"
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        size="lg"
+                        fontSize="md"
+                        bg={useColorModeValue('white', 'gray.700')}
+                        borderColor={useColorModeValue('gray.300', 'gray.600')}
+                        _hover={{
+                          borderColor: useColorModeValue('gray.400', 'gray.500')
+                        }}
+                        _focus={{
+                          borderColor: 'blue.500',
+                          boxShadow: 'outline'
+                        }}
+                      />
+                      <FormErrorMessage>{errors.name}</FormErrorMessage>
+                    </FormControl>
 
-                <FormControl id="lastName">
-                  <FormLabel>Last Name</FormLabel>
-                  <Input
-                    type="text"
-                    bg={useColorModeValue('white', 'gray.700')}
-                    borderColor={useColorModeValue('gray.300', 'gray.600')}
-                    _hover={{
-                      borderColor: useColorModeValue('gray.400', 'gray.500')
-                    }}
-                    _focus={{
-                      borderColor: 'blue.500',
-                      boxShadow: 'outline'
-                    }}
-                  />
-                </FormControl>
-              </Stack>
+                    <FormControl isInvalid={errors.email && touched.email}>
+                      <FormLabel fontSize="sm">Email</FormLabel>
+                      <Input
+                        name="email"
+                        type="email"
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        size="lg"
+                        fontSize="md"
+                        bg={useColorModeValue('white', 'gray.700')}
+                        borderColor={useColorModeValue('gray.300', 'gray.600')}
+                        _hover={{
+                          borderColor: useColorModeValue('gray.400', 'gray.500')
+                        }}
+                        _focus={{
+                          borderColor: 'blue.500',
+                          boxShadow: 'outline'
+                        }}
+                      />
+                      <FormErrorMessage>{errors.email}</FormErrorMessage>
+                    </FormControl>
 
-              <FormControl id="email">
-                <FormLabel>Email address</FormLabel>
-                <Input
-                  type="email"
-                  autoComplete="email"
-                  bg={useColorModeValue('white', 'gray.700')}
-                  borderColor={useColorModeValue('gray.300', 'gray.600')}
-                  _hover={{
-                    borderColor: useColorModeValue('gray.400', 'gray.500')
-                  }}
-                  _focus={{
-                    borderColor: 'blue.500',
-                    boxShadow: 'outline'
-                  }}
-                />
-              </FormControl>
+                    <FormControl isInvalid={errors.password && touched.password}>
+                      <FormLabel fontSize="sm">Password</FormLabel>
+                      <Input
+                        name="password"
+                        type="password"
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        size="lg"
+                        fontSize="md"
+                        bg={useColorModeValue('white', 'gray.700')}
+                        borderColor={useColorModeValue('gray.300', 'gray.600')}
+                        _hover={{
+                          borderColor: useColorModeValue('gray.400', 'gray.500')
+                        }}
+                        _focus={{
+                          borderColor: 'blue.500',
+                          boxShadow: 'outline'
+                        }}
+                      />
+                      <FormErrorMessage>{errors.password}</FormErrorMessage>
+                    </FormControl>
 
-              <FormControl id="password">
-                <FormLabel>Password</FormLabel>
-                <Input
-                  type="password"
-                  bg={useColorModeValue('white', 'gray.700')}
-                  borderColor={useColorModeValue('gray.300', 'gray.600')}
-                  _hover={{
-                    borderColor: useColorModeValue('gray.400', 'gray.500')
-                  }}
-                  _focus={{
-                    borderColor: 'blue.500',
-                    boxShadow: 'outline'
-                  }}
-                />
-              </FormControl>
+                    <FormControl isInvalid={errors.confirmPassword && touched.confirmPassword}>
+                      <FormLabel fontSize="sm">Confirm Password</FormLabel>
+                      <Input
+                        name="confirmPassword"
+                        type="password"
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        size="lg"
+                        fontSize="md"
+                        bg={useColorModeValue('white', 'gray.700')}
+                        borderColor={useColorModeValue('gray.300', 'gray.600')}
+                        _hover={{
+                          borderColor: useColorModeValue('gray.400', 'gray.500')
+                        }}
+                        _focus={{
+                          borderColor: 'blue.500',
+                          boxShadow: 'outline'
+                        }}
+                      />
+                      <FormErrorMessage>{errors.confirmPassword}</FormErrorMessage>
+                    </FormControl>
 
-              <FormControl id="confirmPassword">
-                <FormLabel>Confirm Password</FormLabel>
-                <Input
-                  type="password"
-                  bg={useColorModeValue('white', 'gray.700')}
-                  borderColor={useColorModeValue('gray.300', 'gray.600')}
-                  _hover={{
-                    borderColor: useColorModeValue('gray.400', 'gray.500')
-                  }}
-                  _focus={{
-                    borderColor: 'blue.500',
-                    boxShadow: 'outline'
-                  }}
-                />
-              </FormControl>
+                    <Button
+                      type="submit"
+                      colorScheme="blue"
+                      size="lg"
+                      fontSize="md"
+                      isLoading={isLoading}
+                      w="full"
+                      mt={2}
+                    >
+                      Create Account
+                    </Button>
 
-              <Stack spacing={10} pt={2}>
-                <Button
-                  bg="blue.500"
-                  color="white"
-                  _hover={{
-                    bg: 'blue.600',
-                  }}
-                  _active={{
-                    bg: 'blue.700',
-                  }}
-                  size="lg"
-                  fontSize="md"
-                >
-                  Create Account
-                </Button>
-              </Stack>
+                    <Stack spacing={6} w="full" pt={6}>
+                      <Stack direction="row" justify="center">
+                        <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')}>
+                          Already have an account?{' '}
+                          <Text
+                            as={Link}
+                            to="/login"
+                            color="blue.500"
+                            _hover={{ color: 'blue.600' }}
+                            fontWeight="semibold"
+                          >
+                            Sign in
+                          </Text>
+                        </Text>
+                      </Stack>
 
-              <Stack spacing={6} pt={6}>
-                <Text align="center" fontSize="sm">
-                  Already have an account?{' '}
-                  <Text
-                    as={RouterLink}
-                    to="/login"
-                    color="blue.500"
-                    _hover={{ color: 'blue.600' }}
-                    display="inline-block"
-                    fontWeight="semibold"
-                  >
-                    Sign in
-                  </Text>
-                </Text>
+                      <Divider />
 
-                <Divider />
-
-                <Stack spacing={4}>
-                  <Button
-                    variant="outline"
-                    leftIcon={
-                      <Icon viewBox="0 0 24 24" w={5} h={5}>
-                        <path
-                          fill="currentColor"
-                          d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"
-                        />
-                      </Icon>
-                    }
-                    width="full"
-                    fontSize="sm"
-                    color={useColorModeValue('gray.700', 'gray.200')}
-                    borderColor={useColorModeValue('gray.300', 'gray.600')}
-                    _hover={{
-                      bg: useColorModeValue('gray.50', 'gray.700')
-                    }}
-                  >
-                    Sign up with Google
-                  </Button>
-                  <Button
-                    variant="outline"
-                    leftIcon={
-                      <Icon viewBox="0 0 24 24" w={5} h={5}>
-                        <path
-                          fill="currentColor"
-                          d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm3 8h-1.35c-.538 0-.65.221-.65.778v1.222h2l-.209 2h-1.791v7h-3v-7h-2v-2h2v-2.308c0-1.769.931-2.692 3.029-2.692h1.971v3z"
-                        />
-                      </Icon>
-                    }
-                    width="full"
-                    fontSize="sm"
-                    color={useColorModeValue('gray.700', 'gray.200')}
-                    borderColor={useColorModeValue('gray.300', 'gray.600')}
-                    _hover={{
-                      bg: useColorModeValue('gray.50', 'gray.700')
-                    }}
-                  >
-                    Sign up with Facebook
-                  </Button>
-                </Stack>
-              </Stack>
-            </Stack>
+                      <Stack spacing={4}>
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          fontSize="md"
+                          leftIcon={
+                            <Icon viewBox="0 0 24 24" w={5} h={5}>
+                              <path
+                                fill="currentColor"
+                                d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"
+                              />
+                            </Icon>
+                          }
+                          w="full"
+                          color={useColorModeValue('gray.700', 'gray.200')}
+                          borderColor={useColorModeValue('gray.300', 'gray.600')}
+                          _hover={{
+                            bg: useColorModeValue('gray.50', 'gray.700')
+                          }}
+                        >
+                          Sign up with Google
+                        </Button>
+                      </Stack>
+                    </Stack>
+                  </VStack>
+                </Form>
+              )}
+            </Formik>
           </Box>
         </Stack>
-      </Center>
+      </Container>
     </Box>
   );
 };
