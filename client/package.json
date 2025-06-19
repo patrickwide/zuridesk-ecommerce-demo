@@ -15,6 +15,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@reduxjs/toolkit": "^2.8.2",
+    "axios": "^1.10.0",
     "formik": "^2.4.6",
     "framer-motion": "^6.5.1",
     "react": "^19.1.0",
