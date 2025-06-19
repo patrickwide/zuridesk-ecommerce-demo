@@ -22,7 +22,7 @@ import {
 } from '@chakra-ui/react';
 import { registerSchema } from '../utils/validationSchemas';
 import FormContainer from '../components/FormContainer';
-import { setCredentials } from '../store/slices/authSlice';
+import { register } from '../store/slices/authSlice';
 
 const RegisterPage = () => {
   const dispatch = useDispatch();
@@ -33,19 +33,18 @@ const RegisterPage = () => {
   const handleRegister = async (values, { setSubmitting }) => {
     try {
       setIsLoading(true);
-      // API call will go here
-      // For now, just simulate registration
-      dispatch(setCredentials({
-        user: { email: values.email, name: values.name },
-        token: 'dummy-token'
-      }));
-      toast({
-        title: 'Registration successful',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
-      navigate('/');
+      const resultAction = await dispatch(register(values));
+      if (register.fulfilled.match(resultAction)) {
+        toast({
+          title: 'Registration successful',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+        navigate('/');
+      } else if (register.rejected.match(resultAction)) {
+        throw new Error(resultAction.payload || 'Registration failed');
+      }
     } catch (error) {
       toast({
         title: 'Registration failed',

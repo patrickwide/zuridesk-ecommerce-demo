@@ -23,7 +23,7 @@ import {
 } from '@chakra-ui/react';
 import { loginSchema } from '../utils/validationSchemas';
 import FormContainer from '../components/FormContainer';
-import { setCredentials } from '../store/slices/authSlice';
+import { login } from '../store/slices/authSlice';
 
 const LoginPage = () => {
   const dispatch = useDispatch();
@@ -34,19 +34,18 @@ const LoginPage = () => {
   const handleLogin = async (values, { setSubmitting }) => {
     try {
       setIsLoading(true);
-      // API call will go here
-      // For now, just simulate login
-      dispatch(setCredentials({
-        user: { email: values.email },
-        token: 'dummy-token'
-      }));
-      toast({
-        title: 'Login successful',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
-      navigate('/');
+      const resultAction = await dispatch(login(values));
+      if (login.fulfilled.match(resultAction)) {
+        toast({
+          title: 'Login successful',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+        navigate('/');
+      } else if (login.rejected.match(resultAction)) {
+        throw new Error(resultAction.payload || 'Login failed');
+      }
     } catch (error) {
       toast({
         title: 'Login failed',
