@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useDispatch } from 'react-redux';
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
 import { Formik, Form } from 'formik';
 import {
@@ -22,18 +22,28 @@ import {
   Container,
 } from '@chakra-ui/react';
 import { loginSchema } from '../utils/validationSchemas';
-import FormContainer from '../components/FormContainer';
-import { login } from '../store/slices/authSlice';
+import { login, clearError } from '../store/slices/authSlice';
 
 const LoginPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const toast = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  
+  const { loading, error, isAuthenticated } = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    // If already authenticated, redirect to home
+    if (isAuthenticated) {
+      navigate('/');
+    }
+    // Clear any previous auth errors when component mounts
+    return () => {
+      dispatch(clearError());
+    };
+  }, [isAuthenticated, navigate, dispatch]);
 
   const handleLogin = async (values, { setSubmitting }) => {
     try {
-      setIsLoading(true);
       const resultAction = await dispatch(login(values));
       if (login.fulfilled.match(resultAction)) {
         toast({
@@ -43,19 +53,16 @@ const LoginPage = () => {
           isClosable: true,
         });
         navigate('/');
-      } else if (login.rejected.match(resultAction)) {
-        throw new Error(resultAction.payload || 'Login failed');
       }
     } catch (error) {
       toast({
         title: 'Login failed',
-        description: error.message,
+        description: error.message || 'An error occurred during login',
         status: 'error',
         duration: 5000,
         isClosable: true,
       });
     } finally {
-      setIsLoading(false);
       setSubmitting(false);
     }
   };
@@ -98,6 +105,12 @@ const LoginPage = () => {
               {({ handleSubmit, errors, touched, handleChange, handleBlur }) => (
                 <Form onSubmit={handleSubmit}>
                   <VStack spacing={6}>
+                    {error && (
+                      <Text color="red.500" fontSize="sm">
+                        {error}
+                      </Text>
+                    )}
+
                     <FormControl isInvalid={errors.email && touched.email}>
                       <FormLabel fontSize="sm">Email</FormLabel>
                       <Input
@@ -170,7 +183,7 @@ const LoginPage = () => {
                         colorScheme="blue"
                         size="lg"
                         fontSize="md"
-                        isLoading={isLoading}
+                        isLoading={loading}
                         w="full"
                       >
                         Sign in

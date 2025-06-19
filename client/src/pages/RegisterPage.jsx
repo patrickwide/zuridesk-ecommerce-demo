@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useDispatch } from 'react-redux';
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
 import { Formik, Form } from 'formik';
 import {
@@ -14,21 +14,32 @@ import {
   Heading,
   Text,
   useColorModeValue,
-  Center,
   Icon,
   Divider,
   Stack,
   Container,
 } from '@chakra-ui/react';
 import { registerSchema } from '../utils/validationSchemas';
-import FormContainer from '../components/FormContainer';
-import { register } from '../store/slices/authSlice';
+import { register, clearError } from '../store/slices/authSlice';
 
 const RegisterPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const toast = useToast();
   const [isLoading, setIsLoading] = useState(false);
+
+  const { loading, error, isAuthenticated } = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    // If already authenticated, redirect to home
+    if (isAuthenticated) {
+      navigate('/');
+    }
+    // Clear any previous auth errors when component mounts
+    return () => {
+      dispatch(clearError());
+    };
+  }, [isAuthenticated, navigate, dispatch]);
 
   const handleRegister = async (values, { setSubmitting }) => {
     try {
@@ -37,18 +48,17 @@ const RegisterPage = () => {
       if (register.fulfilled.match(resultAction)) {
         toast({
           title: 'Registration successful',
+          description: 'Your account has been created successfully',
           status: 'success',
           duration: 3000,
           isClosable: true,
         });
         navigate('/');
-      } else if (register.rejected.match(resultAction)) {
-        throw new Error(resultAction.payload || 'Registration failed');
       }
     } catch (error) {
       toast({
         title: 'Registration failed',
-        description: error.message,
+        description: error.message || 'An error occurred during registration',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -102,6 +112,12 @@ const RegisterPage = () => {
               {({ handleSubmit, errors, touched, handleChange, handleBlur }) => (
                 <Form onSubmit={handleSubmit}>
                   <VStack spacing={6}>
+                    {error && (
+                      <Text color="red.500" fontSize="sm">
+                        {error}
+                      </Text>
+                    )}
+
                     <FormControl isInvalid={errors.name && touched.name}>
                       <FormLabel fontSize="sm">Name</FormLabel>
                       <Input
@@ -194,7 +210,7 @@ const RegisterPage = () => {
                       colorScheme="blue"
                       size="lg"
                       fontSize="md"
-                      isLoading={isLoading}
+                      isLoading={loading || isLoading}
                       w="full"
                       mt={2}
                     >
