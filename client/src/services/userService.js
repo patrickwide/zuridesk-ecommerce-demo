@@ -19,11 +19,23 @@ class UserService extends ApiService {
   }
 
   async logout() {
-    await apiClient.post(`${this.resourcePath}/logout`);
+    // Clear token first
     this.removeToken();
+    try {
+      await apiClient.post(`${this.resourcePath}/logout`);
+    } catch (error) {
+      // Even if the server request fails, we want to ensure the token is removed
+      this.removeToken();
+      throw error;
+    }
   }
 
   async getProfile() {
+    // Get token before making request
+    const token = this.getToken();
+    if (!token) {
+      throw new Error('No auth token found');
+    }
     const response = await apiClient.get(`${this.resourcePath}/profile`);
     return response.data;
   }
@@ -34,11 +46,17 @@ class UserService extends ApiService {
   }
 
   setToken(token) {
-    localStorage.setItem('token', token);
+    if (token) {
+      localStorage.setItem('token', token);
+      // Update apiClient headers
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
   }
 
   removeToken() {
     localStorage.removeItem('token');
+    // Remove auth header
+    delete apiClient.defaults.headers.common['Authorization'];
   }
 
   getToken() {

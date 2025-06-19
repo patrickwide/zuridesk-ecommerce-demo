@@ -143,7 +143,7 @@ const HomePage = () => {
                   variant="ghost"
                   size="lg"
                   rightIcon={
-                    <Box as="span" ml={2}>→</Box>
+                    <Box as="span" ml={2} mb={2}>→</Box>
                   }
                 >
                   View Collection

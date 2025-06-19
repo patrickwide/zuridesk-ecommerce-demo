@@ -53,7 +53,7 @@ const RegisterPage = () => {
           duration: 3000,
           isClosable: true,
         });
-        navigate('/');
+        navigate('/products');
       }
     } catch (error) {
       toast({

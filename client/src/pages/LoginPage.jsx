@@ -52,7 +52,7 @@ const LoginPage = () => {
           duration: 3000,
           isClosable: true,
         });
-        navigate('/');
+        navigate('/products');
       }
     } catch (error) {
       toast({
@@ -103,7 +103,10 @@ const LoginPage = () => {
               onSubmit={handleLogin}
             >
               {({ handleSubmit, errors, touched, handleChange, handleBlur }) => (
-                <Form onSubmit={handleSubmit}>
+                <Form onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }}>
                   <VStack spacing={6}>
                     {error && (
                       <Text color="red.500" fontSize="sm">

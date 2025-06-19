@@ -13,6 +13,8 @@ import {
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
   const { isAuthenticated, user, loading, error } = useSelector((state) => state.auth);
   const location = useLocation();
+  const spinnerEmptyColor = useColorModeValue('gray.200', 'gray.700');
+  const loadingTextColor = useColorModeValue('gray.600', 'gray.400');
 
   if (loading) {
     return (
@@ -21,11 +23,11 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
           <Spinner
             thickness="4px"
             speed="0.65s"
-            emptyColor={useColorModeValue('gray.200', 'gray.700')}
+            emptyColor={spinnerEmptyColor}
             color="blue.500"
             size="xl"
           />
-          <Text color={useColorModeValue('gray.600', 'gray.400')}>
+          <Text color={loadingTextColor}>
             Verifying authentication...
           </Text>
         </VStack>

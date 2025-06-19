@@ -1,4 +1,5 @@
 import React from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   Box,
   Flex,
@@ -32,12 +33,14 @@ import {
   HiMoon,
   HiSun,
 } from 'react-icons/hi';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { logout } from '../store/slices/authSlice';
 
 const NAV_ITEMS = [
   {
     label: 'Home',
     href: '/',
+    public: true,
   },
   {
     label: 'Shop',
@@ -58,20 +61,66 @@ const NAV_ITEMS = [
         href: '/products/new',
       },
     ],
+    public: true,
   },
   {
     label: 'Orders',
     href: '/orders',
+    private: true,
   },
   {
     label: 'Cart',
     href: '/cart',
+    public: true,
+  },
+];
+
+const ADMIN_NAV_ITEMS = [
+  {
+    label: 'Dashboard',
+    href: '/admin/dashboard',
+  },
+  {
+    label: 'Products',
+    href: '/admin/products',
+  },
+  {
+    label: 'Orders',
+    href: '/admin/orders',
+  },
+  {
+    label: 'Users',
+    href: '/admin/users',
   },
 ];
 
 export default function Header() {
   const { isOpen, onToggle } = useDisclosure();
   const { colorMode, toggleColorMode } = useColorMode();
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useSelector((state) => state.auth);
+
+  const handleLogout = async () => {
+    try {
+      await dispatch(logout()).unwrap();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
+  // Filter navigation items based on auth status
+  const filteredNavItems = NAV_ITEMS.filter(item => {
+    if (item.private && !isAuthenticated) return false;
+    if (item.public || isAuthenticated) return true;
+    return false;
+  });
+
+  // Combine regular nav items with admin nav items if user is admin
+  const allNavItems = user?.isAdmin 
+    ? [...filteredNavItems, ...ADMIN_NAV_ITEMS] 
+    : filteredNavItems;
 
   return (
     <Box>
@@ -141,7 +190,7 @@ export default function Header() {
                 ml={12}
                 alignItems="center"
               >
-                <DesktopNav />
+                <DesktopNav navItems={allNavItems} />
               </Flex>
             </Flex>
 
@@ -171,75 +220,91 @@ export default function Header() {
                 display={{ base: 'none', md: 'flex' }}
                 alignItems="center"
               >
-                <Button
-                  as={RouterLink}
-                  to="/login"
-                  fontSize={'sm'}
-                  fontWeight={500}
-                  variant={'ghost'}
-                  color={useColorModeValue('gray.600', 'gray.300')}
-                  _hover={{
-                    bg: useColorModeValue('gray.100', 'gray.700'),
-                    color: useColorModeValue('gray.800', 'white'),
-                  }}
-                  height="38px"
-                  px={4}
-                >
-                  Sign In
-                </Button>
+                {!isAuthenticated ? (
+                  <>
+                    <Button
+                      as={RouterLink}
+                      to="/login"
+                      fontSize={'sm'}
+                      fontWeight={500}
+                      variant={'ghost'}
+                      color={useColorModeValue('gray.600', 'gray.300')}
+                      _hover={{
+                        bg: useColorModeValue('gray.100', 'gray.700'),
+                        color: useColorModeValue('gray.800', 'white'),
+                      }}
+                      height="38px"
+                      px={4}
+                    >
+                      Sign In
+                    </Button>
 
-                <Button
-                  as={RouterLink}
-                  to="/register"
-                  variant={'solid'}
-                  fontSize={'sm'}
-                  fontWeight={600}
-                  color={'white'}
-                  bg={'blue.500'}
-                  _hover={{
-                    bg: 'blue.600',
-                    transform: 'translateY(-1px)',
-                  }}
-                  _active={{
-                    bg: 'blue.700',
-                    transform: 'translateY(0)',
-                  }}
-                  height="38px"
-                  px={6}
-                  borderRadius="md"
-                  transition="all 0.2s"
-                  boxShadow="sm"
-                >
-                  Sign Up
-                </Button>
-
-                {/* User menu */}
-                <Menu>
-                  <MenuButton
-                    as={Button}
-                    rounded={'full'}
-                    variant={'link'}
-                    cursor={'pointer'}
-                    minW={0}
-                    p={0}
-                    ml={2}
-                  >
-                    <Avatar
-                      size={'sm'}
-                      src={'https://images.unsplash.com/photo-1493666438817-866a91353ca9?ixlib=rb-0.3.5&q=80&fm=jpg&crop=faces&fit=crop&h=200&w=200&s=b616b2c5b373a80ffc9636ba24f7a4a9'}
-                      border="2px solid"
-                      borderColor={useColorModeValue('gray.200', 'gray.600')}
-                    />
-                  </MenuButton>
-                  <MenuList>
-                    <MenuItem as={RouterLink} to="/profile">Profile</MenuItem>
-                    <MenuItem as={RouterLink} to="/orders">My Orders</MenuItem>
-                    <MenuDivider />
-                    <MenuItem as={RouterLink} to="/admin/dashboard">Dashboard</MenuItem>
-                    <MenuDivider />
-                    <MenuItem>Logout</MenuItem>
-                  </MenuList>
-                </Menu>
+                    <Button
+                      as={RouterLink}
+                      to="/register"
+                      variant={'solid'}
+                      fontSize={'sm'}
+                      fontWeight={600}
+                      color={'white'}
+                      bg={'blue.500'}
+                      _hover={{
+                        bg: 'blue.600',
+                        transform: 'translateY(-1px)',
+                      }}
+                      _active={{
+                        bg: 'blue.700',
+                        transform: 'translateY(0)',
+                      }}
+                      height="38px"
+                      px={6}
+                      borderRadius="md"
+                      transition="all 0.2s"
+                      boxShadow="sm"
+                    >
+                      Sign Up
+                    </Button>
+                  </>
+                ) : (
+                  <Menu>
+                    <MenuButton
+                      as={Button}
+                      rounded={'full'}
+                      variant={'link'}
+                      cursor={'pointer'}
+                      minW={0}
+                      p={0}
+                      ml={2}
+                    >
+                      <Avatar
+                        size={'sm'}
+                        name={user?.name}
+                        src={user?.avatar}
+                        border="2px solid"
+                        borderColor={useColorModeValue('gray.200', 'gray.600')}
+                      />
+                    </MenuButton>
+                    <MenuList>
+                      <MenuItem as={RouterLink} to="/profile">Profile</MenuItem>
+                      <MenuItem as={RouterLink} to="/orders">My Orders</MenuItem>
+                      {user?.isAdmin && (
+                        <>
+                          <MenuDivider />
+                          {ADMIN_NAV_ITEMS.map((item) => (
+                            <MenuItem 
+                              key={item.label}
+                              as={RouterLink} 
+                              to={item.href}
+                            >
+                              {item.label}
+                            </MenuItem>
+                          ))}
+                        </>
+                      )}
+                      <MenuDivider />
+                      <MenuItem onClick={handleLogout}>Logout</MenuItem>
+                    </MenuList>
+                  </Menu>
+                )}
               </HStack>
             </HStack>
           </Flex>
@@ -248,20 +313,20 @@ export default function Header() {
 
       {/* Mobile Navigation */}
       <Collapse in={isOpen} animateOpacity>
-        <MobileNav />
+        <MobileNav navItems={allNavItems} isAuthenticated={isAuthenticated} user={user} onLogout={handleLogout} />
       </Collapse>
     </Box>
   );
 }
 
-const DesktopNav = () => {
+const DesktopNav = ({ navItems }) => {
   const linkColor = useColorModeValue('gray.600', 'gray.200');
   const linkHoverColor = useColorModeValue('gray.800', 'white');
   const popoverContentBgColor = useColorModeValue('white', 'gray.800');
 
   return (
     <HStack spacing={1} alignItems="center">
-      {NAV_ITEMS.map((navItem) => (
+      {navItems.map((navItem) => (
         <Box key={navItem.label}>
           <Popover trigger={'hover'} placement={'bottom-start'}>
             <PopoverTrigger>
@@ -273,14 +338,9 @@ const DesktopNav = () => {
                 fontSize={'sm'}
                 fontWeight={500}
                 color={linkColor}
-                borderRadius="md"
-                display="flex"
-                alignItems="center"
-                transition="all 0.2s"
                 _hover={{
                   textDecoration: 'none',
                   color: linkHoverColor,
-                  bg: useColorModeValue('gray.100', 'gray.700'),
                 }}
               >
                 {navItem.label}
@@ -298,10 +358,8 @@ const DesktopNav = () => {
                 p={4}
                 rounded={'xl'}
                 minW={'sm'}
-                borderColor={useColorModeValue('gray.200', 'gray.600')}
-                borderWidth="1px"
               >
-                <Stack spacing={2}>
+                <Stack>
                   {navItem.children.map((child) => (
                     <DesktopSubNav key={child.label} {...child} />
                   ))}
@@ -363,7 +421,12 @@ const DesktopSubNav = ({ label, href, subLabel }) => {
   );
 };
 
-const MobileNav = () => {
+const MobileNav = ({ navItems, isAuthenticated, user, onLogout }) => {
+  // Combine regular nav items with admin nav items if user is admin
+  const allNavItems = user?.isAdmin 
+    ? [...navItems, ...ADMIN_NAV_ITEMS] 
+    : navItems;
+
   return (
     <Stack 
       bg={useColorModeValue('white', 'gray.800')} 
@@ -376,40 +439,58 @@ const MobileNav = () => {
         '0 4px 6px rgba(0, 0, 0, 0.3)'
       )}
     >
-      {NAV_ITEMS.map((navItem) => (
+      {allNavItems.map((navItem) => (
         <MobileNavItem key={navItem.label} {...navItem} />
       ))}
       
       <Stack spacing={3} mt={6} pt={4} borderTop="1px solid" borderColor={useColorModeValue('gray.200', 'gray.700')}>
-        <Button
-          as={RouterLink}
-          to="/login"
-          fontSize={'sm'}
-          fontWeight={500}
-          variant={'outline'}
-          borderColor={useColorModeValue('gray.300', 'gray.600')}
-          color={useColorModeValue('gray.700', 'gray.200')}
-          _hover={{
-            bg: useColorModeValue('gray.50', 'gray.700'),
-          }}
-          height="44px"
-        >
-          Sign In
-        </Button>
-        <Button
-          as={RouterLink}
-          to="/signup"
-          fontSize={'sm'}
-          fontWeight={600}
-          color={'white'}
-          bg={'blue.500'}
-          _hover={{
-            bg: 'blue.600',
-          }}
-          height="44px"
-        >
-          Sign Up
-        </Button>
+        {!isAuthenticated ? (
+          <>
+            <Button
+              as={RouterLink}
+              to="/login"
+              fontSize={'sm'}
+              fontWeight={500}
+              variant={'outline'}
+              borderColor={useColorModeValue('gray.300', 'gray.600')}
+              color={useColorModeValue('gray.700', 'gray.200')}
+              _hover={{
+                bg: useColorModeValue('gray.50', 'gray.700'),
+              }}
+              height="44px"
+            >
+              Sign In
+            </Button>
+            <Button
+              as={RouterLink}
+              to="/signup"
+              fontSize={'sm'}
+              fontWeight={600}
+              color={'white'}
+              bg={'blue.500'}
+              _hover={{
+                bg: 'blue.600',
+              }}
+              height="44px"
+            >
+              Sign Up
+            </Button>
+          </>
+        ) : (
+          <Button
+            onClick={onLogout}
+            fontSize={'sm'}
+            fontWeight={600}
+            color={'white'}
+            bg={'red.500'}
+            _hover={{
+              bg: 'red.600',
+            }}
+            height="44px"
+          >
+            Logout
+          </Button>
+        )}
       </Stack>
     </Stack>
   );
