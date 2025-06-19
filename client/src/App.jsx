@@ -1,13 +1,24 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box } from '@chakra-ui/react';
 import { useLocation } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { AuthRoutes, MainRoutes } from './routes';
+import { getUserProfile } from './store/slices/authSlice';
 
 function App() {
   const location = useLocation();
-  const isAuthPage = ['/login', '/register'].includes(location.pathname);
+  const dispatch = useDispatch();
+  const isAuthPage = ['/login', '/register', '/forgot-password'].includes(location.pathname);
+
+  useEffect(() => {
+    // Check for stored auth token and fetch user profile if it exists
+    const user = localStorage.getItem('user');
+    if (user) {
+      dispatch(getUserProfile());
+    }
+  }, [dispatch]);
 
   if (isAuthPage) {
     return <AuthRoutes />;
