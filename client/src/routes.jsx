@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 
 // Page imports
 import HomePage from './pages/HomePage';
@@ -18,6 +18,7 @@ import AdminProductsPage from './pages/admin/ProductsPage';
 import AdminOrdersPage from './pages/admin/OrdersPage';
 import AdminUsersPage from './pages/admin/UsersPage';
 import NotFoundPage from './pages/NotFoundPage';
+import ProtectedRoute from './components/ProtectedRoute';
 
 export const AuthRoutes = () => (
   <Routes>
@@ -28,28 +29,88 @@ export const AuthRoutes = () => (
 
 export const MainRoutes = () => (
   <Routes>
-    {/* Main routes */}
+    {/* Public routes */}
     <Route path="/" element={<HomePage />} />
     <Route path="/products" element={<ProductsPage />} />
     <Route path="/products/:id" element={<ProductDetailsPage />} />
     <Route path="/categories" element={<CategoriesPage />} />
-    
-    {/* Shopping routes */}
     <Route path="/cart" element={<CartPage />} />
-    <Route path="/checkout" element={<CheckoutPage />} />
     
-    {/* User routes */}
-    <Route path="/profile" element={<ProfilePage />} />
-    <Route path="/orders" element={<OrdersPage />} />
-    <Route path="/orders/:id" element={<OrderDetailsPage />} />
+    {/* Protected routes */}
+    <Route
+      path="/checkout"
+      element={
+        <ProtectedRoute>
+          <CheckoutPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/profile"
+      element={
+        <ProtectedRoute>
+          <ProfilePage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/orders"
+      element={
+        <ProtectedRoute>
+          <OrdersPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/orders/:id"
+      element={
+        <ProtectedRoute>
+          <OrderDetailsPage />
+        </ProtectedRoute>
+      }
+    />
     
     {/* Admin routes */}
-    <Route path="/admin">
-      <Route index element={<AdminDashboardPage />} />
-      <Route path="products" element={<AdminProductsPage />} />
-      <Route path="orders" element={<AdminOrdersPage />} />
-      <Route path="users" element={<AdminUsersPage />} />
-    </Route>
+    <Route
+      path="/admin"
+      element={
+        <ProtectedRoute requireAdmin>
+          <Navigate to="/admin/dashboard" replace />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/admin/dashboard"
+      element={
+        <ProtectedRoute requireAdmin>
+          <AdminDashboardPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/admin/products"
+      element={
+        <ProtectedRoute requireAdmin>
+          <AdminProductsPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/admin/orders"
+      element={
+        <ProtectedRoute requireAdmin>
+          <AdminOrdersPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/admin/users"
+      element={
+        <ProtectedRoute requireAdmin>
+          <AdminUsersPage />
+        </ProtectedRoute>
+      }
+    />
     
     {/* 404 route */}
     <Route path="*" element={<NotFoundPage />} />
