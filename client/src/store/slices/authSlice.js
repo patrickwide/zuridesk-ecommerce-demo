@@ -46,6 +46,17 @@ export const updateProfile = createAsyncThunk(
   }
 );
 
+export const getUserProfile = createAsyncThunk(
+  'auth/getUserProfile',
+  async (_, { rejectWithValue }) => {
+    try {
+      return await userService.getProfile();
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to get user profile');
+    }
+  }
+);
+
 const initialState = {
   user: null,
   token: localStorage.getItem('token'),
@@ -110,6 +121,19 @@ export const authSlice = createSlice({
         state.user = action.payload;
       })
       .addCase(updateProfile.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Get User Profile
+      .addCase(getUserProfile.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getUserProfile.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload;
+      })
+      .addCase(getUserProfile.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });

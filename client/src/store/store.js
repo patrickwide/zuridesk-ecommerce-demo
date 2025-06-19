@@ -5,7 +5,7 @@ import orderReducer from './slices/orderSlice';
 import productReducer from './slices/productSlice';
 import categoryReducer from './slices/categorySlice';
 
-const store = configureStore({
+export const store = configureStore({
   reducer: {
     auth: authReducer,
     cart: cartReducer,
@@ -18,5 +18,3 @@ const store = configureStore({
       serializableCheck: false,
     }),
 });
-
-export default store;

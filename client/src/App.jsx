@@ -14,8 +14,8 @@ function App() {
 
   useEffect(() => {
     // Check for stored auth token and fetch user profile if it exists
-    const user = localStorage.getItem('user');
-    if (user) {
+    const token = localStorage.getItem('token');
+    if (token) {
       dispatch(getUserProfile());
     }
   }, [dispatch]);
