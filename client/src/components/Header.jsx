@@ -503,8 +503,8 @@ const MobileNavItem = ({ label, children, href }) => {
     <Stack spacing={2}>
       <Flex
         py={3}
-        as={children ? Box : Link}
-        href={!children ? href : undefined}
+        as={children ? Box : RouterLink}
+        to={!children ? href : undefined}
         justify={'space-between'}
         align={'center'}
         _hover={{

@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
+import redoc from 'redoc-express';
 import swaggerSpec from './config/swagger.js';
 import connectDB from './config/database.js';
 import productRoutes from './routes/productRoutes.js';
@@ -24,8 +25,31 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Swagger Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// API Documentation Routes
+app.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get('/swagger.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+
+// ReDoc UI
+app.get('/docs/swagger.json', (req, res) => {
+  res.sendFile(swaggerSpec);
+});
+
+app.get('/docs', redoc({
+  title: 'ZuriDesk API Documentation',
+  specUrl: '/docs/swagger.json',
+  redocOptions: {
+    theme: {
+      colors: {
+        primary: {
+          main: '#3182CE'
+        }
+      }
+    }
+  }
+}));
 
 // Routes
 app.use('/api/products', productRoutes);
