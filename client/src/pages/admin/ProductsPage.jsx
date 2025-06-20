@@ -50,6 +50,9 @@ import {
   Spinner,
   Center,
   useToast,
+  InputGroup,
+  InputLeftElement,
+  Skeleton,
 } from '@chakra-ui/react';
 import {
   HiPlus,
@@ -66,6 +69,8 @@ const ProductsPage = () => {
   const { products, loading, error } = useSelector((state) => state.products);
   const { categories } = useSelector((state) => state.categories);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const textColor = useColorModeValue('gray.900', 'white');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -80,6 +85,7 @@ const ProductsPage = () => {
     image: '',
     brand: '',
   });
+  const fallbackSrc = "https://via.placeholder.com/40x40?text=Product";
 
   useEffect(() => {
     dispatch(fetchProducts({}));
@@ -263,7 +269,7 @@ const ProductsPage = () => {
           <Heading
             as="h1"
             size="xl"
-            color={useColorModeValue('gray.900', 'white')}
+            color={textColor}
           >
             Products
           </Heading>
@@ -278,13 +284,16 @@ const ProductsPage = () => {
 
         {/* Filters */}
         <HStack spacing={4}>
-          <Input
-            placeholder="Search products..."
-            maxW="sm"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            leftIcon={<HiSearch />}
-          />
+          <InputGroup maxW="sm">
+            <InputLeftElement>
+              <HiSearch />
+            </InputLeftElement>
+            <Input
+              placeholder="Search products..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </InputGroup>
           <Select
             placeholder="Category"
             maxW="xs"
@@ -313,7 +322,7 @@ const ProductsPage = () => {
 
         {/* Products Table */}
         <Box
-          bg={useColorModeValue('white', 'gray.800')}
+          bg={bgColor}
           rounded="lg"
           shadow="base"
           overflow="hidden"
@@ -335,18 +344,25 @@ const ProductsPage = () => {
                 <Tr key={product._id}>
                   <Td>
                     <HStack>
-                      <Image
-                        src={product.image}
-                        alt={product.name}
-                        boxSize="40px"
-                        objectFit="cover"
-                        rounded="md"
-                      />
+                      <Box position="relative" minW="40px">
+                        <Image
+                          src={product.image}
+                          alt={product.name}
+                          boxSize="40px"
+                          objectFit="cover"
+                          rounded="md"
+                          fallback={<Skeleton boxSize="40px" rounded="md" />}
+                          fallbackSrc={fallbackSrc}
+                          onError={(e) => {
+                            e.target.src = fallbackSrc;
+                          }}
+                        />
+                      </Box>
                       <Box>{product.name}</Box>
                     </HStack>
                   </Td>
                   <Td>{product.sku}</Td>
-                  <Td>{product.category}</Td>
+                  <Td>{typeof product.category === 'object' ? product.category.name : product.category}</Td>
                   <Td>${product.price.toFixed(2)}</Td>
                   <Td>{product.countInStock}</Td>
                   <Td>
@@ -401,8 +417,8 @@ const ProductsPage = () => {
       {/* Add/Edit Product Modal */}
       <Modal isOpen={isOpen} onClose={onClose} size="xl">
         <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>
+        <ModalContent bg={bgColor}>
+          <ModalHeader color={textColor}>
             {selectedProduct ? 'Edit Product' : 'Add New Product'}
           </ModalHeader>
           <ModalCloseButton />
@@ -500,6 +516,25 @@ const ProductsPage = () => {
                   placeholder="Enter product description"
                   rows={4}
                 />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Image Preview</FormLabel>
+                <Box position="relative" maxW="200px">
+                  <Image
+                    src={formData.image || fallbackSrc}
+                    alt={formData.name || 'Product preview'}
+                    w="100%"
+                    h="200px"
+                    objectFit="cover"
+                    rounded="md"
+                    fallback={<Skeleton h="200px" rounded="md" />}
+                    fallbackSrc={fallbackSrc}
+                    onError={(e) => {
+                      e.target.src = fallbackSrc;
+                    }}
+                  />
+                </Box>
               </FormControl>
 
               <FormControl isRequired>

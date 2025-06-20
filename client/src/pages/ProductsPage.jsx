@@ -32,7 +32,7 @@ import {
 import { HiShoppingCart, HiEye } from 'react-icons/hi';
 import { fetchProducts } from '../store/slices/productSlice';
 import { fetchCategories } from '../store/slices/categorySlice';
-import { addToCart } from '../store/slices/cartSlice';
+import AddToCart from '../components/ui/AddToCart';
 
 const ProductsPage = () => {
   const dispatch = useDispatch();
@@ -100,17 +100,6 @@ const ProductsPage = () => {
   const handleQuickView = (product) => {
     setSelectedProduct(product);
     onOpen();
-  };
-
-  const handleAddToCart = (product) => {
-    dispatch(addToCart({
-      id: product._id,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-      countInStock: product.countInStock,
-      qty: 1
-    }));
   };
 
   const sortProducts = (productsToSort) => {
@@ -296,15 +285,10 @@ const ProductsPage = () => {
                         ${product.price.toFixed(2)}
                       </Text>
                       <HStack>
-                        <Button
-                          onClick={() => handleAddToCart(product)}
-                          colorScheme="blue"
-                          leftIcon={<HiShoppingCart />}
+                        <AddToCart 
+                          product={product}
                           flex="1"
-                          isDisabled={!product.countInStock}
-                        >
-                          {product.countInStock ? 'Add to Cart' : 'Out of Stock'}
-                        </Button>
+                        />
                         <IconButton
                           icon={<HiEye />}
                           variant="outline"
@@ -353,14 +337,11 @@ const ProductsPage = () => {
                     {selectedProduct.countInStock > 0 ? 'In Stock' : 'Out of Stock'}
                   </Badge>
                   <Text>{selectedProduct.description}</Text>
-                  <Button
-                    as={RouterLink}
-                    to={`/products/${selectedProduct._id}`}
-                    colorScheme="blue"
+                  <AddToCart 
+                    product={selectedProduct}
                     width="full"
-                  >
-                    View Details
-                  </Button>
+                    onSuccess={onClose}
+                  />
                 </Stack>
               </Stack>
             )}

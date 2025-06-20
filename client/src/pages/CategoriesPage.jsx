@@ -23,6 +23,12 @@ const CategoriesPage = () => {
   const { categories, loading, error } = useSelector((state) => state.categories);
   const fallbackImageUrl = "https://via.placeholder.com/800x600?text=Category+Image";
 
+  // Call all hooks at the top level, before any conditional returns
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const headingColor = useColorModeValue('gray.900', 'white');
+  const textColor = useColorModeValue('gray.600', 'gray.300');
+  const linkColor = useColorModeValue('blue.600', 'blue.300');
+
   useEffect(() => {
     dispatch(fetchCategories());
   }, [dispatch]);
@@ -56,13 +62,13 @@ const CategoriesPage = () => {
             as="h1"
             size="xl"
             mb={4}
-            color={useColorModeValue('gray.900', 'white')}
+            color={headingColor}
           >
             Product Categories
           </Heading>
           <Text
             fontSize="lg"
-            color={useColorModeValue('gray.600', 'gray.300')}
+            color={textColor}
             maxW="2xl"
             mx="auto"
           >
@@ -76,7 +82,7 @@ const CategoriesPage = () => {
               key={category._id}
               as={RouterLink}
               to={`/products?category=${category._id}`}
-              bg={useColorModeValue('white', 'gray.800')}
+              bg={bgColor}
               rounded="lg"
               overflow="hidden"
               shadow="base"
@@ -105,18 +111,18 @@ const CategoriesPage = () => {
                 <Stack spacing={2}>
                   <Heading
                     size="md"
-                    color={useColorModeValue('gray.900', 'white')}
+                    color={headingColor}
                   >
                     {category.name}
                   </Heading>
                   <Text
-                    color={useColorModeValue('gray.600', 'gray.300')}
+                    color={textColor}
                   >
                     {category.description}
                   </Text>
                   <Text
                     fontSize="sm"
-                    color={useColorModeValue('blue.600', 'blue.300')}
+                    color={linkColor}
                     fontWeight="semibold"
                   >
                     View Products →

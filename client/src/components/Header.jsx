@@ -40,37 +40,44 @@ const NAV_ITEMS = [
   {
     label: 'Home',
     href: '/',
+    id: 'home',
     public: true,
   },
   {
     label: 'Shop',
+    id: 'shop',
     children: [
       {
         label: 'All Products',
         subLabel: 'Browse our complete catalog',
         href: '/products',
+        id: 'all-products',
       },
       {
         label: 'Categories',
         subLabel: 'Shop by product category',
         href: '/categories',
+        id: 'categories',
       },
       {
         label: 'New Arrivals',
         subLabel: 'See our latest products',
         href: '/products/new',
+        id: 'new-arrivals',
       },
     ],
     public: true,
   },
   {
-    label: 'Orders',
+    label: 'My Orders',
     href: '/orders',
+    id: 'user-orders',
     private: true,
   },
   {
-    label: 'Cart',
+    label: 'My Cart',
     href: '/cart',
+    id: 'cart',
     public: true,
   },
 ];
@@ -79,18 +86,22 @@ const ADMIN_NAV_ITEMS = [
   {
     label: 'Dashboard',
     href: '/admin/dashboard',
+    id: 'admin-dashboard',
   },
   {
     label: 'Products',
     href: '/admin/products',
+    id: 'admin-products',
   },
   {
     label: 'Orders',
     href: '/admin/orders',
+    id: 'admin-orders',
   },
   {
     label: 'Users',
     href: '/admin/users',
+    id: 'admin-users',
   },
 ];
 
@@ -291,7 +302,7 @@ export default function Header() {
                           <MenuDivider />
                           {ADMIN_NAV_ITEMS.map((item) => (
                             <MenuItem 
-                              key={item.label}
+                              key={item.id}
                               as={RouterLink} 
                               to={item.href}
                             >
@@ -327,7 +338,7 @@ const DesktopNav = ({ navItems }) => {
   return (
     <HStack spacing={1} alignItems="center">
       {navItems.map((navItem) => (
-        <Box key={navItem.label}>
+        <Box key={navItem.id}>
           <Popover trigger={'hover'} placement={'bottom-start'}>
             <PopoverTrigger>
               <Link
@@ -361,7 +372,7 @@ const DesktopNav = ({ navItems }) => {
               >
                 <Stack>
                   {navItem.children.map((child) => (
-                    <DesktopSubNav key={child.label} {...child} />
+                    <DesktopSubNav key={child.id} {...child} />
                   ))}
                 </Stack>
               </PopoverContent>
@@ -420,13 +431,11 @@ const DesktopSubNav = ({ label, href, subLabel }) => {
     </Link>
   );
 };
-
 const MobileNav = ({ navItems, isAuthenticated, user, onLogout }) => {
-  // Combine regular nav items with admin nav items if user is admin
   const allNavItems = user?.isAdmin 
     ? [...navItems, ...ADMIN_NAV_ITEMS] 
     : navItems;
-
+    
   return (
     <Stack 
       bg={useColorModeValue('white', 'gray.800')} 
@@ -439,59 +448,15 @@ const MobileNav = ({ navItems, isAuthenticated, user, onLogout }) => {
         '0 4px 6px rgba(0, 0, 0, 0.3)'
       )}
     >
-      {allNavItems.map((navItem) => (
-        <MobileNavItem key={navItem.label} {...navItem} />
+      {navItems.map((navItem) => (
+        <MobileNavItem key={`nav-${navItem.id}`} {...navItem} />
       ))}
       
-      <Stack spacing={3} mt={6} pt={4} borderTop="1px solid" borderColor={useColorModeValue('gray.200', 'gray.700')}>
-        {!isAuthenticated ? (
-          <>
-            <Button
-              as={RouterLink}
-              to="/login"
-              fontSize={'sm'}
-              fontWeight={500}
-              variant={'outline'}
-              borderColor={useColorModeValue('gray.300', 'gray.600')}
-              color={useColorModeValue('gray.700', 'gray.200')}
-              _hover={{
-                bg: useColorModeValue('gray.50', 'gray.700'),
-              }}
-              height="44px"
-            >
-              Sign In
-            </Button>
-            <Button
-              as={RouterLink}
-              to="/signup"
-              fontSize={'sm'}
-              fontWeight={600}
-              color={'white'}
-              bg={'blue.500'}
-              _hover={{
-                bg: 'blue.600',
-              }}
-              height="44px"
-            >
-              Sign Up
-            </Button>
-          </>
-        ) : (
-          <Button
-            onClick={onLogout}
-            fontSize={'sm'}
-            fontWeight={600}
-            color={'white'}
-            bg={'red.500'}
-            _hover={{
-              bg: 'red.600',
-            }}
-            height="44px"
-          >
-            Logout
-          </Button>
-        )}
-      </Stack>
+      {user?.isAdmin && ADMIN_NAV_ITEMS.map((navItem) => (
+        <MobileNavItem key={`admin-${navItem.id}`} {...navItem} />
+      ))}
+      
+      {/* Rest of your component */}
     </Stack>
   );
 };

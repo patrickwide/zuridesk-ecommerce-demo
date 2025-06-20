@@ -9,7 +9,6 @@ import {
   Stack,
   useColorModeValue,
   Image,
-  Button,
   HStack,
   Badge,
   Center,
@@ -19,31 +18,22 @@ import {
   Skeleton,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
-import { HiShoppingCart } from 'react-icons/hi';
 import { fetchProducts } from '../store/slices/productSlice';
-import { addToCart } from '../store/slices/cartSlice';
+import AddToCart from '../components/ui/AddToCart';
 
 const NewProductsPage = () => {
   const dispatch = useDispatch();
   const { products, loading, error } = useSelector((state) => state.products);
+  
+  // Define all color mode values at the top level - never conditionally
   const bgColor = useColorModeValue('white', 'gray.800');
   const textColor = useColorModeValue('gray.900', 'white');
   const accentColor = useColorModeValue('blue.600', 'blue.300');
+  const subtextColor = useColorModeValue('gray.600', 'gray.400');
 
   useEffect(() => {
     dispatch(fetchProducts({})); // This will get the latest products by default since they're sorted by createdAt
   }, [dispatch]);
-
-  const handleAddToCart = (product) => {
-    dispatch(addToCart({
-      id: product._id,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-      countInStock: product.countInStock,
-      qty: 1
-    }));
-  };
 
   if (loading) {
     return (
@@ -72,7 +62,7 @@ const NewProductsPage = () => {
         <Heading as="h1" size="xl" color={textColor}>
           New Arrivals
         </Heading>
-        <Text fontSize="lg" color={useColorModeValue('gray.600', 'gray.400')}>
+        <Text fontSize="lg" color={subtextColor}>
           Check out our latest products and newest additions to our catalog
         </Text>
 
@@ -117,7 +107,7 @@ const NewProductsPage = () => {
                   >
                     {product.name}
                   </Heading>
-                  <Text color={useColorModeValue('gray.600', 'gray.400')}>
+                  <Text color={subtextColor}>
                     {product.description.substring(0, 100)}...
                   </Text>
                   <Text
@@ -132,14 +122,7 @@ const NewProductsPage = () => {
                       {product.countInStock > 0 ? 'In Stock' : 'Out of Stock'}
                     </Badge>
                   </HStack>
-                  <Button
-                    onClick={() => handleAddToCart(product)}
-                    colorScheme="blue"
-                    leftIcon={<HiShoppingCart />}
-                    isDisabled={!product.countInStock}
-                  >
-                    Add to Cart
-                  </Button>
+                  <AddToCart product={product} />
                 </Stack>
               </Stack>
             </Box>

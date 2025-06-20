@@ -51,9 +51,9 @@ const cartSlice = createSlice({
       const existingItem = state.cartItems.find((x) => x._id === item._id);
 
       if (existingItem) {
-        state.cartItems = state.cartItems.map((x) =>
-          x._id === existingItem._id ? item : x
-        );
+        // Update the quantity (replace, don't add)
+        existingItem.qty = item.qty;
+        existingItem.countInStock = item.countInStock; // Update stock info
       } else {
         state.cartItems.push(item);
       }
@@ -66,10 +66,34 @@ const cartSlice = createSlice({
     updateCartItemQty: (state, action) => {
       const { id, qty } = action.payload;
       const item = state.cartItems.find((x) => x._id === id);
-      if (item) {
+      if (item && qty > 0) {
         item.qty = qty;
+      } else if (item && qty <= 0) {
+        // Remove item if quantity is 0 or less
+        state.cartItems = state.cartItems.filter((x) => x._id !== id);
       }
       localStorage.setItem('cart', JSON.stringify(state));
+    },
+    incrementCartItem: (state, action) => {
+      const id = action.payload;
+      const item = state.cartItems.find((x) => x._id === id);
+      if (item && item.qty < item.countInStock) {
+        item.qty += 1;
+        localStorage.setItem('cart', JSON.stringify(state));
+      }
+    },
+    decrementCartItem: (state, action) => {
+      const id = action.payload;
+      const item = state.cartItems.find((x) => x._id === id);
+      if (item) {
+        if (item.qty > 1) {
+          item.qty -= 1;
+        } else {
+          // Remove item if quantity becomes 0
+          state.cartItems = state.cartItems.filter((x) => x._id !== id);
+        }
+        localStorage.setItem('cart', JSON.stringify(state));
+      }
     },
     saveShippingAddress: (state, action) => {
       state.shippingAddress = action.payload;
@@ -91,9 +115,9 @@ const cartSlice = createSlice({
         const existingItem = state.cartItems.find((x) => x._id === item._id);
 
         if (existingItem) {
-          state.cartItems = state.cartItems.map((x) =>
-            x._id === existingItem._id ? item : x
-          );
+          // Add the new quantity to the existing quantity
+          existingItem.qty += item.qty;
+          existingItem.countInStock = item.countInStock; // Update stock info
         } else {
           state.cartItems.push(item);
         }
@@ -106,6 +130,8 @@ export const {
   addToCart,
   removeFromCart,
   updateCartItemQty,
+  incrementCartItem,
+  decrementCartItem,
   saveShippingAddress,
   savePaymentMethod,
   clearCart
@@ -118,5 +144,9 @@ export const selectCartTotal = (state) =>
 // Selector for cart items count
 export const selectCartItemsCount = (state) =>
   state.cart.cartItems.reduce((count, item) => count + item.qty, 0);
+
+// Selector to check if product is in cart
+export const selectCartItem = (state, productId) =>
+  state.cart.cartItems.find((item) => item._id === productId);
 
 export default cartSlice.reducer;

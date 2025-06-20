@@ -57,33 +57,28 @@ import {
   HiPencilAlt,
 } from 'react-icons/hi';
 import { fetchProductById } from '../store/slices/productSlice';
-import { addToCart } from '../store/slices/cartSlice';
+import AddToCart from '../components/ui/AddToCart';
 
 const ProductDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { product, loading, error } = useSelector((state) => state.products);
-  const [quantity, setQuantity] = useState(1);
   const [isWishListed, setIsWishListed] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
 
+  // Move ALL useColorModeValue calls to the top level - they must be called on every render
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const priceColor = useColorModeValue('blue.600', 'blue.300');
+  const descriptionColor = useColorModeValue('gray.600', 'gray.400');
+  const shippingInfoBg = useColorModeValue('gray.50', 'gray.700');
+  const specColor = useColorModeValue('gray.600', 'gray.400');
+  const reviewBg = useColorModeValue('gray.50', 'gray.700');
+
   useEffect(() => {
     dispatch(fetchProductById(id));
   }, [dispatch, id]);
-
-  const handleAddToCart = () => {
-    dispatch(addToCart({
-      id: product._id,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-      countInStock: product.countInStock,
-      qty: quantity
-    }));
-    navigate('/cart');
-  };
 
   const handleToggleWishlist = () => {
     setIsWishListed(!isWishListed);
@@ -142,7 +137,7 @@ const ProductDetailsPage = () => {
         {/* Product Images */}
         <GridItem>
           <Box
-            bg={useColorModeValue('white', 'gray.800')}
+            bg={cardBg}
             p={6}
             rounded="lg"
             shadow="base"
@@ -179,85 +174,60 @@ const ProductDetailsPage = () => {
               <Text
                 fontSize="2xl"
                 fontWeight="bold"
-                color={useColorModeValue('blue.600', 'blue.300')}
+                color={priceColor}
               >
                 ${product.price.toFixed(2)}
               </Text>
             </Box>
 
-            <Text color={useColorModeValue('gray.600', 'gray.400')}>
+            <Text color={descriptionColor}>
               {product.description}
             </Text>
 
             {/* Product Actions */}
             <Box>
-              <HStack mb={4}>
-                <Text>Quantity:</Text>
-                <NumberInput
-                  value={quantity}
-                  onChange={(value) => setQuantity(Number(value))}
-                  min={1}
-                  max={product.countInStock}
-                  maxW="100px"
-                  isDisabled={!product.countInStock}
+              <AddToCart 
+                product={product}
+                showQuantity={true}
+                size="lg"
+                onSuccess={() => navigate('/cart')}
+              />
+              
+              <HStack mt={4}>
+                <Button
+                  onClick={handleToggleWishlist}
+                  variant="outline"
+                  flex="1"
+                  leftIcon={<HiHeart />}
+                  colorScheme={isWishListed ? "pink" : "gray"}
                 >
-                  <NumberInputField />
-                  <NumberInputStepper>
-                    <NumberIncrementStepper />
-                    <NumberDecrementStepper />
-                  </NumberInputStepper>
-                </NumberInput>
-                <Text color="gray.500">
-                  {product.countInStock} units available
-                </Text>
+                  {isWishListed ? "Wishlisted" : "Add to Wishlist"}
+                </Button>
+                
+                <Button
+                  onClick={handleShare}
+                  variant="outline"
+                  flex="1"
+                  leftIcon={<HiShare />}
+                >
+                  Share
+                </Button>
               </HStack>
               
-              <Stack spacing={4}>
-                <Button
-                  onClick={handleAddToCart}
-                  colorScheme="blue"
-                  size="lg"
-                  width="full"
-                  leftIcon={<HiShoppingCart />}
-                  isDisabled={!product.countInStock}
-                >
-                  Add to Cart
-                </Button>
-                
-                <HStack>
-                  <Button
-                    onClick={handleToggleWishlist}
-                    variant="outline"
-                    flex="1"
-                    leftIcon={<HiHeart />}
-                    colorScheme={isWishListed ? "pink" : "gray"}
-                  >
-                    {isWishListed ? "Wishlisted" : "Add to Wishlist"}
-                  </Button>
-                  
-                  <Button
-                    onClick={handleShare}
-                    variant="outline"
-                    flex="1"
-                    leftIcon={<HiShare />}
-                  >
-                    Share
-                  </Button>
-                </HStack>
-                
-                <Button
-                  onClick={() => setIsReviewModalOpen(true)}
-                  variant="ghost"
-                  leftIcon={<HiPencilAlt />}
-                >
-                  Write a Review
-                </Button>
-              </Stack>
+              <Button
+                onClick={() => setIsReviewModalOpen(true)}
+                variant="ghost"
+                leftIcon={<HiPencilAlt />}
+                mt={4}
+                width="full"
+              >
+                Write a Review
+              </Button>
             </Box>
 
             {/* Shipping Info */}
             <VStack
-              bg={useColorModeValue('gray.50', 'gray.700')}
+              bg={shippingInfoBg}
               p={4}
               rounded="md"
               align="stretch"
@@ -299,13 +269,13 @@ const ProductDetailsPage = () => {
               <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={6}>
                 <Box>
                   <Text fontWeight="bold">Brand</Text>
-                  <Text color={useColorModeValue('gray.600', 'gray.400')}>
+                  <Text color={specColor}>
                     {product.brand}
                   </Text>
                 </Box>
                 <Box>
                   <Text fontWeight="bold">Category</Text>
-                  <Text color={useColorModeValue('gray.600', 'gray.400')}>
+                  <Text color={specColor}>
                     {typeof product.category === 'object' ? product.category.name : product.category}
                   </Text>
                 </Box>
@@ -319,7 +289,7 @@ const ProductDetailsPage = () => {
                     <Box
                       key={index}
                       p={4}
-                      bg={useColorModeValue('gray.50', 'gray.700')}
+                      bg={reviewBg}
                       rounded="md"
                     >
                       <HStack mb={2}>
