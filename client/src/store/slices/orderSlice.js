@@ -48,9 +48,9 @@ export const fetchOrderById = createAsyncThunk(
 
 export const updateOrderToPaid = createAsyncThunk(
   'orders/updateOrderToPaid',
-  async (orderId, { rejectWithValue }) => {
+  async ({ orderId, paymentResult }, { rejectWithValue }) => {
     try {
-      return await orderService.updateToPaid(orderId);
+      return await orderService.updateToPaid(orderId, paymentResult);
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to update order payment');
     }

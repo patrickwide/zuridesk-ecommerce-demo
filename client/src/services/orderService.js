@@ -11,8 +11,8 @@ class OrderService extends ApiService {
     return response.data;
   }
 
-  async updateToPaid(orderId) {
-    const response = await apiClient.put(`${this.resourcePath}/${orderId}/pay`);
+  async updateToPaid(orderId, paymentResult) {
+    const response = await apiClient.put(`${this.resourcePath}/${orderId}/pay`, paymentResult);
     return response.data;
   }
 

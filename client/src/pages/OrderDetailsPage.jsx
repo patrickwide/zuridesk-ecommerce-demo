@@ -20,12 +20,15 @@ import {
 } from '@chakra-ui/react';
 import { Link as RouterLink, useParams } from 'react-router-dom';
 import { HiArrowLeft } from 'react-icons/hi';
+import { useSelector } from 'react-redux';
+import PayPalButton from '../components/ui/PayPalButton';
 
 const OrderDetailsPage = () => {
   const { id } = useParams();
+  const { order, loading, error } = useSelector((state) => state.order);
 
   // Mock order data - will be replaced with Redux state/API call
-  const order = {
+  const mockOrder = {
     id: '1234',
     date: '2025-06-15',
     status: 'Delivered',
@@ -62,6 +65,8 @@ const OrderDetailsPage = () => {
     paymentDetails: 'MPESA123456789'
   };
 
+  const orderData = order || mockOrder;
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'Delivered':
@@ -74,6 +79,10 @@ const OrderDetailsPage = () => {
         return 'gray';
     }
   };
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>{error}</div>;
+  if (!order) return <div>Order not found</div>;
 
   return (
     <Container maxW="container.xl" py={8}>
@@ -89,13 +98,13 @@ const OrderDetailsPage = () => {
             Back to Orders
           </Button>
           <Badge
-            colorScheme={getStatusColor(order.status)}
+            colorScheme={getStatusColor(orderData.status)}
             fontSize="md"
             px={4}
             py={2}
             rounded="full"
           >
-            {order.status}
+            {orderData.status}
           </Badge>
         </Stack>
 
@@ -120,7 +129,7 @@ const OrderDetailsPage = () => {
               >
                 <Heading size="md" mb={6}>Order Items</Heading>
                 <Stack spacing={4}>
-                  {order.items.map((item) => (
+                  {orderData.items.map((item) => (
                     <Box key={item.id}>
                       <Flex gap={4}>
                         <Image
@@ -155,12 +164,12 @@ const OrderDetailsPage = () => {
               >
                 <Heading size="md" mb={6}>Shipping Information</Heading>
                 <VStack align="stretch" spacing={2}>
-                  <Text fontWeight="medium">{order.shippingAddress.name}</Text>
-                  <Text>{order.shippingAddress.address}</Text>
+                  <Text fontWeight="medium">{orderData.shippingAddress.name}</Text>
+                  <Text>{orderData.shippingAddress.address}</Text>
                   <Text>
-                    {order.shippingAddress.city}, {order.shippingAddress.county} {order.shippingAddress.postalCode}
+                    {orderData.shippingAddress.city}, {orderData.shippingAddress.county} {orderData.shippingAddress.postalCode}
                   </Text>
-                  <Text>{order.shippingAddress.phone}</Text>
+                  <Text>{orderData.shippingAddress.phone}</Text>
                 </VStack>
               </Box>
             </Stack>
@@ -185,16 +194,16 @@ const OrderDetailsPage = () => {
                       <Text color={useColorModeValue('gray.600', 'gray.400')}>
                         Order Date
                       </Text>
-                      <Text>{order.date}</Text>
+                      <Text>{orderData.date}</Text>
                     </HStack>
                   </ListItem>
-                  {order.deliveryDate && (
+                  {orderData.deliveryDate && (
                     <ListItem>
                       <HStack justify="space-between">
                         <Text color={useColorModeValue('gray.600', 'gray.400')}>
                           Delivery Date
                         </Text>
-                        <Text>{order.deliveryDate}</Text>
+                        <Text>{orderData.deliveryDate}</Text>
                       </HStack>
                     </ListItem>
                   )}
@@ -203,17 +212,17 @@ const OrderDetailsPage = () => {
                       <Text color={useColorModeValue('gray.600', 'gray.400')}>
                         Payment Method
                       </Text>
-                      <Text>{order.paymentMethod}</Text>
+                      <Text>{orderData.paymentMethod}</Text>
                     </HStack>
                   </ListItem>
-                  {order.paymentDetails && (
+                  {orderData.paymentDetails && (
                     <ListItem>
                       <HStack justify="space-between">
                         <Text color={useColorModeValue('gray.600', 'gray.400')}>
                           Transaction ID
                         </Text>
                         <Text fontSize="sm" fontFamily="mono">
-                          {order.paymentDetails}
+                          {orderData.paymentDetails}
                         </Text>
                       </HStack>
                     </ListItem>
@@ -226,19 +235,19 @@ const OrderDetailsPage = () => {
                   <ListItem>
                     <HStack justify="space-between">
                       <Text>Subtotal</Text>
-                      <Text>${order.subtotal.toFixed(2)}</Text>
+                      <Text>${orderData.subtotal.toFixed(2)}</Text>
                     </HStack>
                   </ListItem>
                   <ListItem>
                     <HStack justify="space-between">
                       <Text>Shipping</Text>
-                      <Text>${order.shipping.toFixed(2)}</Text>
+                      <Text>${orderData.shipping.toFixed(2)}</Text>
                     </HStack>
                   </ListItem>
                   <ListItem>
                     <HStack justify="space-between">
                       <Text>Tax</Text>
-                      <Text>${order.tax.toFixed(2)}</Text>
+                      <Text>${orderData.tax.toFixed(2)}</Text>
                     </HStack>
                   </ListItem>
                   <Divider />
@@ -246,7 +255,7 @@ const OrderDetailsPage = () => {
                     <HStack justify="space-between">
                       <Text fontWeight="bold">Total</Text>
                       <Text fontWeight="bold">
-                        ${order.total.toFixed(2)}
+                        ${orderData.total.toFixed(2)}
                       </Text>
                     </HStack>
                   </ListItem>
@@ -264,6 +273,13 @@ const OrderDetailsPage = () => {
             </Box>
           </GridItem>
         </Grid>
+
+        {/* PayPal Button - Shown only if order is not paid */}
+        {!orderData.isPaid && (
+          <Box mt={4}>
+            <PayPalButton orderId={orderData.id} total={orderData.total} />
+          </Box>
+        )}
       </Stack>
     </Container>
   );

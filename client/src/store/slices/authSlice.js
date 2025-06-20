@@ -39,7 +39,8 @@ export const updateProfile = createAsyncThunk(
   'auth/updateProfile',
   async (userData, { rejectWithValue }) => {
     try {
-      return await userService.updateProfile(userData);
+      const updatedUser = await userService.updateProfile(userData);
+      return updatedUser;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Profile update failed');
     }
@@ -87,15 +88,13 @@ export const authSlice = createSlice({
       })
       .addCase(login.fulfilled, (state, action) => {
         state.loading = false;
+        state.isAuthenticated = true;
         state.user = action.payload;
         state.token = action.payload.token;
-        state.isAuthenticated = true;
-        state.error = null;
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
-        state.isAuthenticated = false;
       })
       // Register
       .addCase(register.pending, (state) => {
@@ -104,36 +103,34 @@ export const authSlice = createSlice({
       })
       .addCase(register.fulfilled, (state, action) => {
         state.loading = false;
+        state.isAuthenticated = true;
         state.user = action.payload;
         state.token = action.payload.token;
-        state.isAuthenticated = true;
-        state.error = null;
       })
       .addCase(register.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
-        state.isAuthenticated = false;
       })
       // Logout
-      .addCase(logout.pending, (state) => {
+      .addCase(logout.fulfilled, (state) => {
+        state.user = null;
+        state.token = null;
+        state.isAuthenticated = false;
+        state.loading = false;
+        state.error = null;
+      })
+      // Get Profile
+      .addCase(getUserProfile.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(logout.fulfilled, (state) => {
+      .addCase(getUserProfile.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = null;
-        state.token = null;
-        state.isAuthenticated = false;
-        state.error = null;
-        localStorage.removeItem('token');
+        state.user = action.payload;
       })
-      .addCase(logout.rejected, (state, action) => {
+      .addCase(getUserProfile.rejected, (state, action) => {
         state.loading = false;
-        state.user = null;
-        state.token = null;
-        state.isAuthenticated = false;
         state.error = action.payload;
-        localStorage.removeItem('token');
       })
       // Update Profile
       .addCase(updateProfile.pending, (state) => {
@@ -147,27 +144,10 @@ export const authSlice = createSlice({
       .addCase(updateProfile.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
-      })
-      // Get User Profile
-      .addCase(getUserProfile.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(getUserProfile.fulfilled, (state, action) => {
-        state.loading = false;
-        state.user = action.payload;
-        state.isAuthenticated = true;
-      })
-      .addCase(getUserProfile.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-        state.user = null;
-        state.token = null;
-        state.isAuthenticated = false;
-        localStorage.removeItem('token');
       });
   },
 });
 
 export const { clearError, setCredentials } = authSlice.actions;
+
 export default authSlice.reducer;
