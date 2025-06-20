@@ -49,6 +49,10 @@ const CartPage = () => {
   const total = subtotal + shipping + tax;
 
   const handleRemoveFromCart = (id) => {
+    // Debug logging
+    console.log("Attempting to remove item with id:", id);
+    console.log("Current cart items:", cartItems);
+
     dispatch(removeFromCart(id));
     toast({
       title: "Item removed",

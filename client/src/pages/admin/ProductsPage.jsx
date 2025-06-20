@@ -77,9 +77,7 @@ const ProductsPage = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [formData, setFormData] = useState({
     name: '',
-    sku: '',
     price: 0,
-    stock: 0,
     category: '',
     description: '',
     image: '',
@@ -94,21 +92,20 @@ const ProductsPage = () => {
   useEffect(() => {
     if (selectedProduct) {
       setFormData({
-        name: selectedProduct.name,
-        sku: selectedProduct.sku,
-        price: selectedProduct.price,
-        stock: selectedProduct.countInStock, // Fix: use countInStock instead of stock
-        category: selectedProduct.category,
-        description: selectedProduct.description,
-        image: selectedProduct.image,
-        brand: selectedProduct.brand,
+        name: selectedProduct.name || '',
+        price: selectedProduct.price || 0,
+        // Fix: Handle both object and string category formats
+        category: typeof selectedProduct.category === 'object' 
+          ? selectedProduct.category._id 
+          : selectedProduct.category || '',
+        description: selectedProduct.description || '',
+        image: selectedProduct.image || '',
+        brand: selectedProduct.brand || '',
       });
     } else {
       setFormData({
         name: '',
-        sku: '',
         price: 0,
-        stock: 0,
         category: '',
         description: '',
         image: '',
@@ -147,15 +144,17 @@ const ProductsPage = () => {
 
   const handleEditProduct = (product) => {
     setSelectedProduct(product);
+    // Set form data directly here as well for immediate update
     setFormData({
-      name: product.name,
-      sku: product.sku,
-      price: product.price,
-      stock: product.countInStock, // Fix: use countInStock instead of stock
-      category: product.category,
-      description: product.description,
-      image: product.image,
-      brand: product.brand,
+      name: product.name || '',
+      price: product.price || 0,
+      // Fix: Handle both object and string category formats
+      category: typeof product.category === 'object' 
+        ? product.category._id 
+        : product.category || '',
+      description: product.description || '',
+      image: product.image || '',
+      brand: product.brand || '',
     });
     onOpen();
   };
@@ -168,9 +167,14 @@ const ProductsPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Send form data directly as it matches the API specification
       const productData = {
-        ...formData,
-        countInStock: formData.stock, // Fix: map stock to countInStock
+        name: formData.name,
+        price: formData.price,
+        description: formData.description,
+        image: formData.image,
+        brand: formData.brand,
+        category: formData.category,
       };
       
       if (selectedProduct) {
@@ -331,7 +335,6 @@ const ProductsPage = () => {
             <Thead>
               <Tr>
                 <Th>Product</Th>
-                <Th>SKU</Th>
                 <Th>Category</Th>
                 <Th>Price</Th>
                 <Th>Stock</Th>
@@ -361,7 +364,6 @@ const ProductsPage = () => {
                       <Box>{product.name}</Box>
                     </HStack>
                   </Td>
-                  <Td>{product.sku}</Td>
                   <Td>{typeof product.category === 'object' ? product.category.name : product.category}</Td>
                   <Td>${product.price.toFixed(2)}</Td>
                   <Td>{product.countInStock}</Td>
@@ -435,51 +437,32 @@ const ProductsPage = () => {
               </FormControl>
 
               <FormControl isRequired>
-                <FormLabel>SKU</FormLabel>
+                <FormLabel>Brand</FormLabel>
                 <Input
-                  name="sku"
-                  value={formData.sku}
+                  name="brand"
+                  value={formData.brand}
                   onChange={handleInputChange}
-                  placeholder="Enter SKU"
+                  placeholder="Enter brand name"
                 />
               </FormControl>
 
-              <HStack>
-                <FormControl isRequired>
-                  <FormLabel>Price</FormLabel>
-                  <NumberInput
-                    value={formData.price}
-                    onChange={(value) =>
-                      setFormData((prev) => ({ ...prev, price: Number(value) }))
-                    }
-                    min={0}
-                    precision={2}
-                  >
-                    <NumberInputField />
-                    <NumberInputStepper>
-                      <NumberIncrementStepper />
-                      <NumberDecrementStepper />
-                    </NumberInputStepper>
-                  </NumberInput>
-                </FormControl>
-
-                <FormControl isRequired>
-                  <FormLabel>Stock</FormLabel>
-                  <NumberInput
-                    value={formData.stock}
-                    onChange={(value) =>
-                      setFormData((prev) => ({ ...prev, stock: Number(value) }))
-                    }
-                    min={0}
-                  >
-                    <NumberInputField />
-                    <NumberInputStepper>
-                      <NumberIncrementStepper />
-                      <NumberDecrementStepper />
-                    </NumberInputStepper>
-                  </NumberInput>
-                </FormControl>
-              </HStack>
+              <FormControl isRequired>
+                <FormLabel>Price</FormLabel>
+                <NumberInput
+                  value={formData.price}
+                  onChange={(value) =>
+                    setFormData((prev) => ({ ...prev, price: Number(value) }))
+                  }
+                  min={0}
+                  precision={2}
+                >
+                  <NumberInputField />
+                  <NumberInputStepper>
+                    <NumberIncrementStepper />
+                    <NumberDecrementStepper />
+                  </NumberInputStepper>
+                </NumberInput>
+              </FormControl>
 
               <FormControl isRequired>
                 <FormLabel>Category</FormLabel>
@@ -495,16 +478,6 @@ const ProductsPage = () => {
                     </option>
                   ))}
                 </Select>
-              </FormControl>
-
-              <FormControl isRequired>
-                <FormLabel>Brand</FormLabel>
-                <Input
-                  name="brand"
-                  value={formData.brand}
-                  onChange={handleInputChange}
-                  placeholder="Enter brand name"
-                />
               </FormControl>
 
               <FormControl isRequired>

@@ -24,6 +24,7 @@ import {
   MenuItem,
   MenuDivider,
   HStack,
+  Badge,
 } from '@chakra-ui/react';
 import {
   HiMenu,
@@ -32,9 +33,11 @@ import {
   HiChevronRight,
   HiMoon,
   HiSun,
+  HiShoppingCart,
 } from 'react-icons/hi';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { logout } from '../store/slices/authSlice';
+import { selectCartItemsCount } from '../store/slices/cartSlice';
 
 const NAV_ITEMS = [
   {
@@ -74,13 +77,32 @@ const NAV_ITEMS = [
     id: 'user-orders',
     private: true,
   },
-  {
-    label: 'My Cart',
-    href: '/cart',
-    id: 'cart',
-    public: true,
-  },
 ];
+
+// Separate cart item for mobile navigation
+const CART_NAV_ITEM = {
+  label: (props) => {
+    const itemCount = useSelector(selectCartItemsCount);
+    return (
+      <HStack spacing={2}>
+        <HiShoppingCart size={18} />
+        <Box as="span">Cart</Box>
+        {itemCount > 0 && (
+          <Badge
+            colorScheme="blue"
+            borderRadius="full"
+            px={2}
+          >
+            {itemCount}
+          </Badge>
+        )}
+      </HStack>
+    );
+  },
+  href: '/cart',
+  id: 'cart',
+  public: true,
+};
 
 const ADMIN_NAV_ITEMS = [
   {
@@ -105,6 +127,48 @@ const ADMIN_NAV_ITEMS = [
   },
 ];
 
+// Cart Button Component for desktop
+const CartButton = () => {
+  const itemCount = useSelector(selectCartItemsCount);
+  
+  return (
+    <Button
+      as={RouterLink}
+      to="/cart"
+      variant="ghost"
+      leftIcon={<HiShoppingCart size={18} />}
+      fontSize="sm"
+      fontWeight={500}
+      color={useColorModeValue('gray.600', 'gray.300')}
+      _hover={{
+        bg: useColorModeValue('gray.100', 'gray.700'),
+        color: useColorModeValue('gray.800', 'white'),
+      }}
+      height="38px"
+      px={4}
+      position="relative"
+    >
+      Cart
+      {itemCount > 0 && (
+        <Badge
+          colorScheme="blue"
+          borderRadius="full"
+          px={2}
+          ml={2}
+          minW="20px"
+          height="20px"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          fontSize="xs"
+        >
+          {itemCount}
+        </Badge>
+      )}
+    </Button>
+  );
+};
+
 export default function Header() {
   const { isOpen, onToggle } = useDisclosure();
   const { colorMode, toggleColorMode } = useColorMode();
@@ -121,7 +185,7 @@ export default function Header() {
     }
   };
 
-  // Filter navigation items based on auth status
+  // Filter navigation items based on auth status (excluding cart)
   const filteredNavItems = NAV_ITEMS.filter(item => {
     if (item.private && !isAuthenticated) return false;
     if (item.public || isAuthenticated) return true;
@@ -132,6 +196,11 @@ export default function Header() {
   const allNavItems = user?.isAdmin 
     ? [...filteredNavItems, ...ADMIN_NAV_ITEMS] 
     : filteredNavItems;
+
+  // For mobile, include cart in navigation
+  const mobileNavItems = user?.isAdmin 
+    ? [...filteredNavItems, CART_NAV_ITEM, ...ADMIN_NAV_ITEMS] 
+    : [...filteredNavItems, CART_NAV_ITEM];
 
   return (
     <Box>
@@ -211,6 +280,11 @@ export default function Header() {
               alignItems="center"
               flex={{ base: 0, md: 'none' }}
             >
+              {/* Desktop Cart Button */}
+              <Box display={{ base: 'none', md: 'block' }}>
+                <CartButton />
+              </Box>
+
               {/* Color mode toggle */}
               <IconButton
                 aria-label="Toggle color mode"
@@ -324,7 +398,7 @@ export default function Header() {
 
       {/* Mobile Navigation */}
       <Collapse in={isOpen} animateOpacity>
-        <MobileNav navItems={allNavItems} isAuthenticated={isAuthenticated} user={user} onLogout={handleLogout} />
+        <MobileNav navItems={mobileNavItems} isAuthenticated={isAuthenticated} user={user} onLogout={handleLogout} />
       </Collapse>
     </Box>
   );
@@ -354,7 +428,7 @@ const DesktopNav = ({ navItems }) => {
                   color: linkHoverColor,
                 }}
               >
-                {navItem.label}
+                {typeof navItem.label === 'function' ? navItem.label() : navItem.label}
                 {navItem.children && (
                   <Icon as={HiChevronDown} ml={1} w={4} h={4} />
                 )}
@@ -431,11 +505,8 @@ const DesktopSubNav = ({ label, href, subLabel }) => {
     </Link>
   );
 };
+
 const MobileNav = ({ navItems, isAuthenticated, user, onLogout }) => {
-  const allNavItems = user?.isAdmin 
-    ? [...navItems, ...ADMIN_NAV_ITEMS] 
-    : navItems;
-    
   return (
     <Stack 
       bg={useColorModeValue('white', 'gray.800')} 
@@ -452,11 +523,55 @@ const MobileNav = ({ navItems, isAuthenticated, user, onLogout }) => {
         <MobileNavItem key={`nav-${navItem.id}`} {...navItem} />
       ))}
       
-      {user?.isAdmin && ADMIN_NAV_ITEMS.map((navItem) => (
-        <MobileNavItem key={`admin-${navItem.id}`} {...navItem} />
-      ))}
-      
-      {/* Rest of your component */}
+      {/* Mobile Auth Section */}
+      <Stack pt={4} borderTop="1px solid" borderColor={useColorModeValue('gray.200', 'gray.600')}>
+        {!isAuthenticated ? (
+          <HStack spacing={3}>
+            <Button
+              as={RouterLink}
+              to="/login"
+              variant="ghost"
+              size="sm"
+              flex={1}
+            >
+              Sign In
+            </Button>
+            <Button
+              as={RouterLink}
+              to="/register"
+              colorScheme="blue"
+              size="sm"
+              flex={1}
+            >
+              Sign Up
+            </Button>
+          </HStack>
+        ) : (
+          <Stack spacing={2}>
+            <Text fontSize="sm" fontWeight="medium" color={useColorModeValue('gray.700', 'gray.200')}>
+              Welcome, {user?.name}!
+            </Text>
+            <Button
+              as={RouterLink}
+              to="/profile"
+              variant="ghost"
+              size="sm"
+              justifyContent="flex-start"
+            >
+              Profile
+            </Button>
+            <Button
+              onClick={onLogout}
+              variant="ghost"
+              size="sm"
+              justifyContent="flex-start"
+              color="red.500"
+            >
+              Logout
+            </Button>
+          </Stack>
+        )}
+      </Stack>
     </Stack>
   );
 };
@@ -482,13 +597,13 @@ const MobileNavItem = ({ label, children, href }) => {
         px={2}
         transition="all 0.2s"
       >
-        <Text 
+        <Box 
           fontWeight={600} 
           color={useColorModeValue('gray.700', 'gray.200')}
           fontSize="sm"
         >
-          {label}
-        </Text>
+          {typeof label === 'function' ? label() : label}
+        </Box>
         {children && (
           <Icon
             as={HiChevronDown}

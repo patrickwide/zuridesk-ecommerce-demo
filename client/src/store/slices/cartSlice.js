@@ -60,23 +60,33 @@ const cartSlice = createSlice({
       localStorage.setItem('cart', JSON.stringify(state));
     },
     removeFromCart: (state, action) => {
-      state.cartItems = state.cartItems.filter((x) => x._id !== action.payload);
+      // Debug logging
+      console.log('Remove from cart - ID to remove:', action.payload);
+      console.log('Cart items before removal:', state.cartItems);
+      
+      state.cartItems = state.cartItems.filter((x) => {
+        const itemId = x._id || x.id; // Handle both _id and id properties
+        console.log('Comparing item id:', itemId, 'with id to remove:', action.payload);
+        return itemId !== action.payload;
+      });
+      
+      console.log('Cart items after removal:', state.cartItems);
       localStorage.setItem('cart', JSON.stringify(state));
     },
     updateCartItemQty: (state, action) => {
       const { id, qty } = action.payload;
-      const item = state.cartItems.find((x) => x._id === id);
+      const item = state.cartItems.find((x) => (x._id === id || x.id === id));
       if (item && qty > 0) {
         item.qty = qty;
       } else if (item && qty <= 0) {
         // Remove item if quantity is 0 or less
-        state.cartItems = state.cartItems.filter((x) => x._id !== id);
+        state.cartItems = state.cartItems.filter((x) => (x._id !== id && x.id !== id));
       }
       localStorage.setItem('cart', JSON.stringify(state));
     },
     incrementCartItem: (state, action) => {
       const id = action.payload;
-      const item = state.cartItems.find((x) => x._id === id);
+      const item = state.cartItems.find((x) => (x._id === id || x.id === id));
       if (item && item.qty < item.countInStock) {
         item.qty += 1;
         localStorage.setItem('cart', JSON.stringify(state));
@@ -84,13 +94,13 @@ const cartSlice = createSlice({
     },
     decrementCartItem: (state, action) => {
       const id = action.payload;
-      const item = state.cartItems.find((x) => x._id === id);
+      const item = state.cartItems.find((x) => (x._id === id || x.id === id));
       if (item) {
         if (item.qty > 1) {
           item.qty -= 1;
         } else {
           // Remove item if quantity becomes 0
-          state.cartItems = state.cartItems.filter((x) => x._id !== id);
+          state.cartItems = state.cartItems.filter((x) => (x._id !== id && x.id !== id));
         }
         localStorage.setItem('cart', JSON.stringify(state));
       }
