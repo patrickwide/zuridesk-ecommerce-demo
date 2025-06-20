@@ -15,11 +15,11 @@ export const createOrder = createAsyncThunk(
 
 export const fetchMyOrders = createAsyncThunk(
   'orders/fetchMyOrders',
-  async (_, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue }) => {
     try {
-      return await orderService.getMyOrders();
+      return await orderService.getMyOrders(params);
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch orders');
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );
@@ -73,7 +73,12 @@ const initialState = {
   order: null,
   loading: false,
   error: null,
-  success: false
+  success: false,
+  filterParams: {
+    search: '',
+    status: 'all',
+    period: '30'
+  }
 };
 
 const orderSlice = createSlice({
@@ -90,6 +95,9 @@ const orderSlice = createSlice({
     resetOrders: (state) => {
       state.orders = [];
       state.success = false;
+    },
+    updateFilterParams: (state, action) => {
+      state.filterParams = { ...state.filterParams, ...action.payload };
     }
   },
   extraReducers: (builder) => {
@@ -184,5 +192,5 @@ const orderSlice = createSlice({
   }
 });
 
-export const { clearOrderError, resetOrder, resetOrders } = orderSlice.actions;
+export const { clearOrderError, resetOrder, resetOrders, updateFilterParams } = orderSlice.actions;
 export default orderSlice.reducer;

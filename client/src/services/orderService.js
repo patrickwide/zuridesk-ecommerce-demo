@@ -3,11 +3,21 @@ import apiClient from '../config/api';
 
 class OrderService extends ApiService {
   constructor() {
-    super('/orders');
+    super('/api/orders');
   }
 
-  async getMyOrders() {
-    const response = await apiClient.get(`${this.resourcePath}/myorders`);
+  async getMyOrders(params = {}) {
+    const { search, status, period } = params;
+    const queryParams = new URLSearchParams();
+    
+    if (search) queryParams.append('search', search);
+    if (status && status !== 'all') queryParams.append('status', status);
+    if (period) queryParams.append('period', period);
+    
+    const queryString = queryParams.toString();
+    const url = `${this.resourcePath}/myorders${queryString ? `?${queryString}` : ''}`;
+    
+    const response = await apiClient.get(url);
     return response.data;
   }
 

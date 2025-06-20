@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   Box,
   Container,
@@ -20,50 +21,77 @@ import {
   Input,
   InputRightElement,
   IconButton,
+  useToast,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { HiSearch, HiEye } from 'react-icons/hi';
+import { fetchMyOrders, updateFilterParams } from '../store/slices/orderSlice';
+import { useDebounce } from 'use-debounce';
+
+const ORDER_STATUSES = {
+  ALL: 'all',
+  PROCESSING: 'Processing',
+  SHIPPED: 'Shipped',
+  DELIVERED: 'Delivered',
+  CANCELLED: 'Cancelled'
+};
 
 const OrdersPage = () => {
-  // Mock orders data - will be replaced with Redux state
-  const orders = [
-    {
-      id: '1234',
-      date: '2025-06-15',
-      total: 799.98,
-      status: 'Delivered',
-      items: [
-        { name: 'Ergonomic Office Chair', quantity: 1 },
-        { name: 'Standing Desk', quantity: 1 }
-      ]
-    },
-    {
-      id: '1235',
-      date: '2025-06-10',
-      total: 299.99,
-      status: 'Processing',
-      items: [
-        { name: 'Filing Cabinet', quantity: 1 }
-      ]
-    },
-    {
-      id: '1236',
-      date: '2025-06-05',
-      total: 149.99,
-      status: 'Cancelled',
-      items: [
-        { name: 'Desk Lamp', quantity: 1 }
-      ]
+  const dispatch = useDispatch();
+  const toast = useToast();
+  const { orders: ordersData, loading, error, filterParams } = useSelector((state) => state.orders);
+  
+  // Local state for form inputs and message
+  const [searchInput, setSearchInput] = useState(filterParams.search);
+  const [debouncedSearch] = useDebounce(searchInput, 500);
+  const orders = Array.isArray(ordersData) ? ordersData : ordersData?.orders || [];
+  const noOrdersMessage = !Array.isArray(ordersData) ? ordersData?.message : "You haven't placed any orders yet.";
+
+  // Handle filter changes
+  const handleSearchChange = (e) => {
+    setSearchInput(e.target.value);
+  };
+
+  const handleStatusChange = (e) => {
+    dispatch(updateFilterParams({ status: e.target.value }));
+  };
+
+  const handlePeriodChange = (e) => {
+    dispatch(updateFilterParams({ period: e.target.value }));
+  };
+
+  // Effect to handle search debounce
+  useEffect(() => {
+    dispatch(updateFilterParams({ search: debouncedSearch }));
+  }, [debouncedSearch, dispatch]);
+
+  // Effect to fetch orders when filters change
+  useEffect(() => {
+    dispatch(fetchMyOrders(filterParams));
+  }, [dispatch, filterParams]);
+
+  // Error handling
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: 'Error',
+        description: error,
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
     }
-  ];
+  }, [error, toast]);
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Delivered':
+      case ORDER_STATUSES.DELIVERED:
         return 'green';
-      case 'Processing':
+      case ORDER_STATUSES.PROCESSING:
         return 'orange';
-      case 'Cancelled':
+      case ORDER_STATUSES.SHIPPED:
+        return 'blue';
+      case ORDER_STATUSES.CANCELLED:
         return 'red';
       default:
         return 'gray';
@@ -90,7 +118,11 @@ const OrdersPage = () => {
         {/* Filters */}
         <HStack spacing={4}>
           <InputGroup maxW="sm">
-            <Input placeholder="Search orders..." />
+            <Input
+              placeholder="Search orders..."
+              value={searchInput}
+              onChange={handleSearchChange}
+            />
             <InputRightElement>
               <IconButton
                 icon={<HiSearch />}
@@ -99,13 +131,24 @@ const OrdersPage = () => {
               />
             </InputRightElement>
           </InputGroup>
-          <Select placeholder="Status" maxW="xs">
-            <option value="all">All Orders</option>
-            <option value="delivered">Delivered</option>
-            <option value="processing">Processing</option>
-            <option value="cancelled">Cancelled</option>
+          <Select
+            placeholder="Status"
+            maxW="xs"
+            value={filterParams.status}
+            onChange={handleStatusChange}
+          >
+            <option value={ORDER_STATUSES.ALL}>All Orders</option>
+            <option value={ORDER_STATUSES.PROCESSING}>Processing</option>
+            <option value={ORDER_STATUSES.SHIPPED}>Shipped</option>
+            <option value={ORDER_STATUSES.DELIVERED}>Delivered</option>
+            <option value={ORDER_STATUSES.CANCELLED}>Cancelled</option>
           </Select>
-          <Select placeholder="Time period" maxW="xs">
+          <Select
+            placeholder="Time period"
+            maxW="xs"
+            value={filterParams.period}
+            onChange={handlePeriodChange}
+          >
             <option value="30">Last 30 days</option>
             <option value="90">Last 3 months</option>
             <option value="180">Last 6 months</option>
@@ -114,61 +157,71 @@ const OrdersPage = () => {
         </HStack>
 
         {/* Orders Table */}
-        <Box
-          bg={useColorModeValue('white', 'gray.800')}
-          rounded="lg"
-          shadow="base"
-          overflow="hidden"
-        >
-          <Table>
-            <Thead>
-              <Tr>
-                <Th>Order ID</Th>
-                <Th>Date</Th>
-                <Th>Items</Th>
-                <Th>Total</Th>
-                <Th>Status</Th>
-                <Th></Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {orders.map((order) => (
-                <Tr key={order.id}>
-                  <Td fontWeight="medium">#{order.id}</Td>
-                  <Td>{order.date}</Td>
-                  <Td>
-                    <Stack spacing={1}>
-                      {order.items.map((item, index) => (
-                        <Text key={index} fontSize="sm">
-                          {item.quantity}x {item.name}
-                        </Text>
-                      ))}
-                    </Stack>
-                  </Td>
-                  <Td>${order.total.toFixed(2)}</Td>
-                  <Td>
-                    <Badge colorScheme={getStatusColor(order.status)}>
-                      {order.status}
-                    </Badge>
-                  </Td>
-                  <Td>
-                    <Button
-                      as={RouterLink}
-                      to={`/orders/${order.id}`}
-                      size="sm"
-                      leftIcon={<HiEye />}
-                      variant="ghost"
-                    >
-                      View
-                    </Button>
-                  </Td>
+        {loading ? (
+          <Box textAlign="center" py={4}>Loading...</Box>
+        ) : error ? (
+          <Box textAlign="center" py={4} color="red.500">{error}</Box>
+        ) : orders.length > 0 ? (
+          <Box
+            bg={useColorModeValue('white', 'gray.800')}
+            rounded="lg"
+            shadow="base"
+            overflow="hidden"
+          >
+            <Table>
+              <Thead>
+                <Tr>
+                  <Th>Order ID</Th>
+                  <Th>Date</Th>
+                  <Th>Items</Th>
+                  <Th>Total</Th>
+                  <Th>Status</Th>
+                  <Th>Payment</Th>
+                  <Th></Th>
                 </Tr>
-              ))}
-            </Tbody>
-          </Table>
-        </Box>
-
-        {orders.length === 0 && (
+              </Thead>
+              <Tbody>
+                {orders.map((order) => (
+                  <Tr key={order._id}>
+                    <Td fontWeight="medium">#{order._id.slice(-6)}</Td>
+                    <Td>{new Date(order.createdAt).toLocaleDateString()}</Td>
+                    <Td>
+                      <Stack spacing={1}>
+                        {order.orderItems.map((item, index) => (
+                          <Text key={index} fontSize="sm">
+                            {item.quantity}x {item.name}
+                          </Text>
+                        ))}
+                      </Stack>
+                    </Td>
+                    <Td>${order.total.toFixed(2)}</Td>
+                    <Td>
+                      <Badge colorScheme={getStatusColor(order.status)}>
+                        {order.status}
+                      </Badge>
+                    </Td>
+                    <Td>
+                      <Badge colorScheme={order.isPaid ? 'green' : 'yellow'}>
+                        {order.isPaid ? 'Paid' : 'Pending'}
+                      </Badge>
+                    </Td>
+                    <Td>
+                      <Button
+                        as={RouterLink}
+                        to={`/orders/${order._id}`}
+                        size="sm"
+                        leftIcon={<HiEye />}
+                        variant="ghost"
+                      >
+                        View
+                      </Button>
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </Box>
+        ) : (
           <Box
             p={8}
             textAlign="center"
@@ -176,7 +229,7 @@ const OrdersPage = () => {
             rounded="lg"
             shadow="base"
           >
-            <Text mb={4}>You haven't placed any orders yet.</Text>
+            <Text mb={4}>{noOrdersMessage}</Text>
             <Button
               as={RouterLink}
               to="/products"

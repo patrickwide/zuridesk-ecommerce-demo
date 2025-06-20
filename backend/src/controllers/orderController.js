@@ -15,9 +15,9 @@ const createOrder = asyncHandler(async (req, res) => {
     total,
   } = req.body;
 
-  if (orderItems && orderItems.length === 0) {
+  if (!orderItems || orderItems.length === 0) {
     res.status(400);
-    throw new Error('No order items');
+    throw new Error('Your cart is empty. Please add items to create an order.');
   }
 
   const order = new Order({
@@ -44,12 +44,18 @@ const getOrderById = asyncHandler(async (req, res) => {
     'name email'
   );
 
-  if (order) {
-    res.json(order);
-  } else {
+  if (!order) {
     res.status(404);
-    throw new Error('Order not found');
+    throw new Error('Order not found. It may have been deleted or the ID is incorrect.');
   }
+
+  // Make sure the user is either an admin or the order owner
+  if (!req.user.isAdmin && order.user._id.toString() !== req.user._id.toString()) {
+    res.status(403);
+    throw new Error('You do not have permission to view this order.');
+  }
+
+  res.json(order);
 });
 
 // @desc    Update order to paid
@@ -58,22 +64,27 @@ const getOrderById = asyncHandler(async (req, res) => {
 const updateOrderToPaid = asyncHandler(async (req, res) => {
   const order = await Order.findById(req.params.id);
 
-  if (order) {
-    order.isPaid = true;
-    order.paidAt = Date.now();
-    order.paymentResult = {
-      id: req.body.id,
-      status: req.body.status,
-      update_time: req.body.update_time,
-      email_address: req.body.email_address,
-    };
-
-    const updatedOrder = await order.save();
-    res.json(updatedOrder);
-  } else {
+  if (!order) {
     res.status(404);
-    throw new Error('Order not found');
+    throw new Error('Order not found. It may have been deleted or the ID is incorrect.');
   }
+
+  if (order.isPaid) {
+    res.status(400);
+    throw new Error('This order has already been paid for.');
+  }
+
+  order.isPaid = true;
+  order.paidAt = Date.now();
+  order.paymentResult = {
+    id: req.body.id,
+    status: req.body.status,
+    update_time: req.body.update_time,
+    email_address: req.body.email_address,
+  };
+
+  const updatedOrder = await order.save();
+  res.json(updatedOrder);
 });
 
 // @desc    Update order to delivered
@@ -82,24 +93,72 @@ const updateOrderToPaid = asyncHandler(async (req, res) => {
 const updateOrderToDelivered = asyncHandler(async (req, res) => {
   const order = await Order.findById(req.params.id);
 
-  if (order) {
-    order.isDelivered = true;
-    order.deliveredAt = Date.now();
-    order.status = 'Delivered';
-
-    const updatedOrder = await order.save();
-    res.json(updatedOrder);
-  } else {
+  if (!order) {
     res.status(404);
-    throw new Error('Order not found');
+    throw new Error('Order not found. It may have been deleted or the ID is incorrect.');
   }
+
+  if (order.isDelivered) {
+    res.status(400);
+    throw new Error('This order has already been marked as delivered.');
+  }
+
+  if (!order.isPaid) {
+    res.status(400);
+    throw new Error('Order cannot be marked as delivered until it has been paid.');
+  }
+
+  order.isDelivered = true;
+  order.deliveredAt = Date.now();
+  order.status = 'Delivered';
+
+  const updatedOrder = await order.save();
+  res.json(updatedOrder);
 });
 
 // @desc    Get logged in user orders
 // @route   GET /api/orders/myorders
 // @access  Private
 const getMyOrders = asyncHandler(async (req, res) => {
-  const orders = await Order.find({ user: req.user._id });
+  const { search, status, period } = req.query;
+  
+  // Base query - always filter by current user
+  let query = { user: req.user._id };
+  
+  // Add status filter if provided
+  if (status && status !== 'all') {
+    query.status = status;
+  }
+  
+  // Add date filter based on period
+  if (period) {
+    const date = new Date();
+    date.setDate(date.getDate() - parseInt(period));
+    query.createdAt = { $gte: date };
+  }
+  
+  // Add search filter if provided
+  if (search) {
+    const searchRegex = new RegExp(search, 'i');
+    query.$or = [
+      // Only search text fields with regex
+      { 'orderItems.name': searchRegex },
+      { 'shippingAddress.name': searchRegex },
+      { 'shippingAddress.address': searchRegex },
+      { 'shippingAddress.city': searchRegex },
+      { 'shippingAddress.county': searchRegex }
+    ];
+  }
+
+  const orders = await Order.find(query).sort({ createdAt: -1 });
+  
+  if (orders.length === 0) {
+    return res.json({ 
+      orders: [],
+      message: "No orders found matching your criteria."
+    });
+  }
+  
   res.json(orders);
 });
 

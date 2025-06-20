@@ -35,7 +35,7 @@ import {
   HiSun,
   HiShoppingCart,
 } from 'react-icons/hi';
-import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { logout } from '../store/slices/authSlice';
 import { selectCartItemsCount } from '../store/slices/cartSlice';
 
@@ -127,37 +127,9 @@ const ADMIN_NAV_ITEMS = [
   },
 ];
 
-// Utility function to check if a route is active
-const isRouteActive = (location, href, children) => {
-  // Exact match for simple routes
-  if (location.pathname === href) {
-    return true;
-  }
-  
-  // Check if any child routes are active
-  if (children) {
-    return children.some(child => {
-      if (location.pathname === child.href) {
-        return true;
-      }
-      // Handle nested routes (e.g., /products/123 should match /products)
-      return location.pathname.startsWith(child.href + '/');
-    });
-  }
-  
-  // Handle nested routes for parent items
-  if (href && href !== '/' && location.pathname.startsWith(href + '/')) {
-    return true;
-  }
-  
-  return false;
-};
-
 // Cart Button Component for desktop
 const CartButton = () => {
   const itemCount = useSelector(selectCartItemsCount);
-  const location = useLocation();
-  const isActive = location.pathname === '/cart';
   
   return (
     <Button
@@ -167,24 +139,14 @@ const CartButton = () => {
       leftIcon={<HiShoppingCart size={18} />}
       fontSize="sm"
       fontWeight={500}
-      color={isActive 
-        ? useColorModeValue('blue.600', 'blue.300') 
-        : useColorModeValue('gray.600', 'gray.300')
-      }
-      bg={isActive ? useColorModeValue('blue.50', 'blue.900') : 'transparent'}
+      color={useColorModeValue('gray.600', 'gray.300')}
       _hover={{
-        bg: isActive 
-          ? useColorModeValue('blue.100', 'blue.800')
-          : useColorModeValue('gray.100', 'gray.700'),
-        color: isActive
-          ? useColorModeValue('blue.700', 'blue.200')
-          : useColorModeValue('gray.800', 'white'),
+        bg: useColorModeValue('gray.100', 'gray.700'),
+        color: useColorModeValue('gray.800', 'white'),
       }}
       height="38px"
       px={4}
       position="relative"
-      borderRadius="md"
-      transition="all 0.2s"
     >
       Cart
       {itemCount > 0 && (
@@ -212,7 +174,6 @@ export default function Header() {
   const { colorMode, toggleColorMode } = useColorMode();
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const location = useLocation();
   const { user, isAuthenticated } = useSelector((state) => state.auth);
 
   const handleLogout = async () => {
@@ -309,7 +270,7 @@ export default function Header() {
                 ml={12}
                 alignItems="center"
               >
-                <DesktopNav navItems={allNavItems} location={location} />
+                <DesktopNav navItems={allNavItems} />
               </Flex>
             </Flex>
 
@@ -352,21 +313,10 @@ export default function Header() {
                       fontSize={'sm'}
                       fontWeight={500}
                       variant={'ghost'}
-                      color={location.pathname === '/login' 
-                        ? useColorModeValue('blue.600', 'blue.300')
-                        : useColorModeValue('gray.600', 'gray.300')
-                      }
-                      bg={location.pathname === '/login' 
-                        ? useColorModeValue('blue.50', 'blue.900') 
-                        : 'transparent'
-                      }
+                      color={useColorModeValue('gray.600', 'gray.300')}
                       _hover={{
-                        bg: location.pathname === '/login'
-                          ? useColorModeValue('blue.100', 'blue.800')
-                          : useColorModeValue('gray.100', 'gray.700'),
-                        color: location.pathname === '/login'
-                          ? useColorModeValue('blue.700', 'blue.200')
-                          : useColorModeValue('gray.800', 'white'),
+                        bg: useColorModeValue('gray.100', 'gray.700'),
+                        color: useColorModeValue('gray.800', 'white'),
                       }}
                       height="38px"
                       px={4}
@@ -381,7 +331,7 @@ export default function Header() {
                       fontSize={'sm'}
                       fontWeight={600}
                       color={'white'}
-                      bg={location.pathname === '/register' ? 'blue.600' : 'blue.500'}
+                      bg={'blue.500'}
                       _hover={{
                         bg: 'blue.600',
                         transform: 'translateY(-1px)',
@@ -419,34 +369,8 @@ export default function Header() {
                       />
                     </MenuButton>
                     <MenuList>
-                      <MenuItem 
-                        as={RouterLink} 
-                        to="/profile"
-                        bg={location.pathname === '/profile' 
-                          ? useColorModeValue('blue.50', 'blue.900') 
-                          : 'transparent'
-                        }
-                        color={location.pathname === '/profile'
-                          ? useColorModeValue('blue.600', 'blue.300')
-                          : 'inherit'
-                        }
-                      >
-                        Profile
-                      </MenuItem>
-                      <MenuItem 
-                        as={RouterLink} 
-                        to="/orders"
-                        bg={location.pathname === '/orders' 
-                          ? useColorModeValue('blue.50', 'blue.900') 
-                          : 'transparent'
-                        }
-                        color={location.pathname === '/orders'
-                          ? useColorModeValue('blue.600', 'blue.300')
-                          : 'inherit'
-                        }
-                      >
-                        My Orders
-                      </MenuItem>
+                      <MenuItem as={RouterLink} to="/profile">Profile</MenuItem>
+                      <MenuItem as={RouterLink} to="/orders">My Orders</MenuItem>
                       {user?.isAdmin && (
                         <>
                           <MenuDivider />
@@ -455,14 +379,6 @@ export default function Header() {
                               key={item.id}
                               as={RouterLink} 
                               to={item.href}
-                              bg={location.pathname === item.href 
-                                ? useColorModeValue('blue.50', 'blue.900') 
-                                : 'transparent'
-                              }
-                              color={location.pathname === item.href
-                                ? useColorModeValue('blue.600', 'blue.300')
-                                : 'inherit'
-                              }
                             >
                               {item.label}
                             </MenuItem>
@@ -482,88 +398,67 @@ export default function Header() {
 
       {/* Mobile Navigation */}
       <Collapse in={isOpen} animateOpacity>
-        <MobileNav 
-          navItems={mobileNavItems} 
-          isAuthenticated={isAuthenticated} 
-          user={user} 
-          onLogout={handleLogout}
-          location={location} 
-        />
+        <MobileNav navItems={mobileNavItems} isAuthenticated={isAuthenticated} user={user} onLogout={handleLogout} />
       </Collapse>
     </Box>
   );
 }
 
-const DesktopNav = ({ navItems, location }) => {
+const DesktopNav = ({ navItems }) => {
   const linkColor = useColorModeValue('gray.600', 'gray.200');
   const linkHoverColor = useColorModeValue('gray.800', 'white');
-  const activeLinkColor = useColorModeValue('blue.600', 'blue.300');
-  const activeLinkBg = useColorModeValue('blue.50', 'blue.900');
   const popoverContentBgColor = useColorModeValue('white', 'gray.800');
 
   return (
     <HStack spacing={1} alignItems="center">
-      {navItems.map((navItem) => {
-        const isActive = isRouteActive(location, navItem.href, navItem.children);
-        
-        return (
-          <Box key={navItem.id}>
-            <Popover trigger={'hover'} placement={'bottom-start'}>
-              <PopoverTrigger>
-                <Link
-                  as={RouterLink}
-                  to={navItem.href ?? '#'}
-                  px={4}
-                  py={2}
-                  fontSize={'sm'}
-                  fontWeight={isActive ? 600 : 500}
-                  color={isActive ? activeLinkColor : linkColor}
-                  bg={isActive ? activeLinkBg : 'transparent'}
-                  borderRadius="md"
-                  transition="all 0.2s"
-                  _hover={{
-                    textDecoration: 'none',
-                    color: isActive ? activeLinkColor : linkHoverColor,
-                    bg: isActive 
-                      ? useColorModeValue('blue.100', 'blue.800')
-                      : useColorModeValue('gray.100', 'gray.700'),
-                  }}
-                  position="relative"
-                >
-                  {typeof navItem.label === 'function' ? navItem.label() : navItem.label}
-                  {navItem.children && (
-                    <Icon as={HiChevronDown} ml={1} w={4} h={4} />
-                  )}
-                </Link>
-              </PopoverTrigger>
+      {navItems.map((navItem) => (
+        <Box key={navItem.id}>
+          <Popover trigger={'hover'} placement={'bottom-start'}>
+            <PopoverTrigger>
+              <Link
+                as={RouterLink}
+                to={navItem.href ?? '#'}
+                px={4}
+                py={2}
+                fontSize={'sm'}
+                fontWeight={500}
+                color={linkColor}
+                _hover={{
+                  textDecoration: 'none',
+                  color: linkHoverColor,
+                }}
+              >
+                {typeof navItem.label === 'function' ? navItem.label() : navItem.label}
+                {navItem.children && (
+                  <Icon as={HiChevronDown} ml={1} w={4} h={4} />
+                )}
+              </Link>
+            </PopoverTrigger>
 
-              {navItem.children && (
-                <PopoverContent
-                  border={0}
-                  boxShadow={'xl'}
-                  bg={popoverContentBgColor}
-                  p={4}
-                  rounded={'xl'}
-                  minW={'sm'}
-                >
-                  <Stack>
-                    {navItem.children.map((child) => (
-                      <DesktopSubNav key={child.id} {...child} location={location} />
-                    ))}
-                  </Stack>
-                </PopoverContent>
-              )}
-            </Popover>
-          </Box>
-        );
-      })}
+            {navItem.children && (
+              <PopoverContent
+                border={0}
+                boxShadow={'xl'}
+                bg={popoverContentBgColor}
+                p={4}
+                rounded={'xl'}
+                minW={'sm'}
+              >
+                <Stack>
+                  {navItem.children.map((child) => (
+                    <DesktopSubNav key={child.id} {...child} />
+                  ))}
+                </Stack>
+              </PopoverContent>
+            )}
+          </Popover>
+        </Box>
+      ))}
     </HStack>
   );
 };
 
-const DesktopSubNav = ({ label, href, subLabel, location }) => {
-  const isActive = location.pathname === href || location.pathname.startsWith(href + '/');
-  
+const DesktopSubNav = ({ label, href, subLabel }) => {
   return (
     <Link
       as={RouterLink}
@@ -573,7 +468,6 @@ const DesktopSubNav = ({ label, href, subLabel, location }) => {
       p={3}
       rounded={'lg'}
       transition="all 0.2s"
-      bg={isActive ? useColorModeValue('blue.100', 'blue.800') : 'transparent'}
       _hover={{ 
         bg: useColorModeValue('blue.50', 'gray.700'),
         transform: 'translateY(-1px)',
@@ -583,9 +477,8 @@ const DesktopSubNav = ({ label, href, subLabel, location }) => {
         <Box flex={1}>
           <Text
             transition={'all .2s ease'}
-            color={isActive ? 'blue.500' : 'inherit'}
             _groupHover={{ color: 'blue.500' }}
-            fontWeight={isActive ? 700 : 600}
+            fontWeight={600}
             fontSize="sm"
           >
             {label}
@@ -600,8 +493,8 @@ const DesktopSubNav = ({ label, href, subLabel, location }) => {
         </Box>
         <Flex
           transition={'all .2s ease'}
-          transform={isActive ? 'translateX(0)' : 'translateX(-10px)'}
-          opacity={isActive ? '100%' : 0}
+          transform={'translateX(-10px)'}
+          opacity={0}
           _groupHover={{ opacity: '100%', transform: 'translateX(0)' }}
           justify={'center'}
           align={'center'}
@@ -613,7 +506,7 @@ const DesktopSubNav = ({ label, href, subLabel, location }) => {
   );
 };
 
-const MobileNav = ({ navItems, isAuthenticated, user, onLogout, location }) => {
+const MobileNav = ({ navItems, isAuthenticated, user, onLogout }) => {
   return (
     <Stack 
       bg={useColorModeValue('white', 'gray.800')} 
@@ -627,18 +520,17 @@ const MobileNav = ({ navItems, isAuthenticated, user, onLogout, location }) => {
       )}
     >
       {navItems.map((navItem) => (
-        <MobileNavItem key={`nav-${navItem.id}`} {...navItem} location={location} />
+        <MobileNavItem key={`nav-${navItem.id}`} {...navItem} />
       ))}
       
       {/* Mobile Auth Section */}
-      <Stack pt={4} borderTop="1px solid" borderColor={useColorModeValue('gray.200', 'gray.600')}>
+      <Stack pt={4} borderTop="1px solid" borderColor={useColorModeValue('gray.200', 'gray.600')} mt={4}>
         {!isAuthenticated ? (
           <HStack spacing={3}>
             <Button
               as={RouterLink}
               to="/login"
-              variant={location.pathname === '/login' ? 'solid' : 'ghost'}
-              colorScheme={location.pathname === '/login' ? 'blue' : 'gray'}
+              variant="ghost"
               size="sm"
               flex={1}
             >
@@ -647,7 +539,6 @@ const MobileNav = ({ navItems, isAuthenticated, user, onLogout, location }) => {
             <Button
               as={RouterLink}
               to="/register"
-              variant={location.pathname === '/register' ? 'solid' : 'outline'}
               colorScheme="blue"
               size="sm"
               flex={1}
@@ -663,8 +554,7 @@ const MobileNav = ({ navItems, isAuthenticated, user, onLogout, location }) => {
             <Button
               as={RouterLink}
               to="/profile"
-              variant={location.pathname === '/profile' ? 'solid' : 'ghost'}
-              colorScheme={location.pathname === '/profile' ? 'blue' : 'gray'}
+              variant="ghost"
               size="sm"
               justifyContent="flex-start"
             >
@@ -686,9 +576,8 @@ const MobileNav = ({ navItems, isAuthenticated, user, onLogout, location }) => {
   );
 };
 
-const MobileNavItem = ({ label, children, href, location }) => {
+const MobileNavItem = ({ label, children, href }) => {
   const { isOpen, onToggle } = useDisclosure();
-  const isActive = isRouteActive(location, href, children);
 
   return (
     <Stack spacing={2}>
@@ -707,16 +596,10 @@ const MobileNavItem = ({ label, children, href, location }) => {
         borderRadius="md"
         px={2}
         transition="all 0.2s"
-        bg={isActive ? useColorModeValue('blue.50', 'blue.900') : 'transparent'}
-        borderLeft={isActive ? '3px solid' : 'none'}
-        borderColor={isActive ? 'blue.500' : 'transparent'}
       >
         <Box 
-          fontWeight={isActive ? 700 : 600}
-          color={isActive 
-            ? useColorModeValue('blue.600', 'blue.300')
-            : useColorModeValue('gray.700', 'gray.200')
-          }
+          fontWeight={600} 
+          color={useColorModeValue('gray.700', 'gray.200')}
           fontSize="sm"
         >
           {typeof label === 'function' ? label() : label}
@@ -743,35 +626,26 @@ const MobileNavItem = ({ label, children, href, location }) => {
           spacing={2}
         >
           {children &&
-            children.map((child) => {
-              const childActive = location.pathname === child.href || location.pathname.startsWith(child.href + '/');
-              
-              return (
-                <Link
-                  key={child.label}
-                  as={RouterLink}
-                  to={child.href}
-                  py={2}
-                  px={2}
-                  fontSize="sm"
-                  fontWeight={childActive ? 600 : 400}
-                  color={childActive 
-                    ? useColorModeValue('blue.600', 'blue.300')
-                    : useColorModeValue('gray.600', 'gray.300')
-                  }
-                  bg={childActive ? useColorModeValue('blue.50', 'blue.900') : 'transparent'}
-                  borderRadius="md"
-                  transition="all 0.2s"
-                  _hover={{ 
-                    textDecoration: 'none', 
-                    color: 'blue.500',
-                    bg: useColorModeValue('blue.50', 'gray.700'),
-                  }}
-                >
-                  {child.label}
-                </Link>
-              );
-            })}
+            children.map((child) => (
+              <Link
+                key={child.label}
+                as={RouterLink}
+                to={child.href}
+                py={2}
+                px={2}
+                fontSize="sm"
+                color={useColorModeValue('gray.600', 'gray.300')}
+                borderRadius="md"
+                transition="all 0.2s"
+                _hover={{ 
+                  textDecoration: 'none', 
+                  color: 'blue.500',
+                  bg: useColorModeValue('blue.50', 'gray.700'),
+                }}
+              >
+                {child.label}
+              </Link>
+            ))}
         </Stack>
       </Collapse>
     </Stack>

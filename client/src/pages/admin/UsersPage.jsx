@@ -42,6 +42,9 @@ const UsersPage = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
 
+  // Move useColorModeValue to the top level, before any conditional returns
+  const tableBg = useColorModeValue("white", "gray.800");
+
   // Form state
   const [editForm, setEditForm] = useState({
     name: "",
@@ -154,9 +157,9 @@ const UsersPage = () => {
           </Alert>
         )}
 
-        {/* Orders Table */}
+        {/* Users Table */}
         <Box
-          bg={useColorModeValue("white", "gray.800")}
+          bg={tableBg}
           rounded="lg"
           shadow="base"
           overflow="hidden"
