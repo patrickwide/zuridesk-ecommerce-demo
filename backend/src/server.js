@@ -34,7 +34,8 @@ app.get('/swagger.json', (req, res) => {
 
 // ReDoc UI
 app.get('/docs/swagger.json', (req, res) => {
-  res.sendFile(swaggerSpec);
+  res.setHeader('Content-Type', 'application/json');
+  res.json(swaggerSpec);
 });
 
 app.get('/docs', redoc({
