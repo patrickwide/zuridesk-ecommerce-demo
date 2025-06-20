@@ -45,6 +45,25 @@ class UserService extends ApiService {
     return response.data;
   }
 
+  async getAllUsers() {
+    const response = await apiClient.get(this.resourcePath);
+    return response.data;
+  }
+
+  async getUserById(userId) {
+    const response = await apiClient.get(`${this.resourcePath}/${userId}`);
+    return response.data;
+  }
+
+  async updateUser(userId, userData) {
+    const response = await apiClient.put(`${this.resourcePath}/${userId}`, userData);
+    return response.data;
+  }
+
+  async deleteUser(userId) {
+    await apiClient.delete(`${this.resourcePath}/${userId}`);
+  }
+
   setToken(token) {
     if (token) {
       localStorage.setItem('token', token);
