@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   Box,
   Container,
@@ -8,41 +9,44 @@ import {
   Stack,
   Image,
   useColorModeValue,
+  Spinner,
+  Center,
+  Alert,
+  AlertIcon,
+  Skeleton,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
+import { fetchCategories } from '../store/slices/categorySlice';
 
 const CategoriesPage = () => {
-  // Mock categories data - will be replaced with real data from backend
-  const categories = [
-    {
-      id: 1,
-      name: 'Office Chairs',
-      description: 'Ergonomic seating solutions for your workspace',
-      image: 'https://images.unsplash.com/photo-1580480055273-228ff5388ef8?auto=format&fit=crop&w=500&q=80',
-      productCount: 24
-    },
-    {
-      id: 2,
-      name: 'Desks',
-      description: 'Standing desks and workstations',
-      image: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=500&q=80',
-      productCount: 18
-    },
-    {
-      id: 3,
-      name: 'Storage',
-      description: 'Filing cabinets and organization solutions',
-      image: 'https://images.unsplash.com/photo-1493934558415-9d19f0b2b4d2?auto=format&fit=crop&w=500&q=80',
-      productCount: 12
-    },
-    {
-      id: 4,
-      name: 'Accessories',
-      description: 'Office essentials and desk accessories',
-      image: 'https://images.unsplash.com/photo-1587467512961-120760940315?auto=format&fit=crop&w=500&q=80',
-      productCount: 36
-    }
-  ];
+  const dispatch = useDispatch();
+  const { categories, loading, error } = useSelector((state) => state.categories);
+  const fallbackImageUrl = "https://via.placeholder.com/800x600?text=Category+Image";
+
+  useEffect(() => {
+    dispatch(fetchCategories());
+  }, [dispatch]);
+
+  if (loading) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <Center>
+          <Spinner size="xl" />
+        </Center>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <Alert status="error">
+          <AlertIcon />
+          {error}
+        </Alert>
+      </Container>
+    );
+  }
 
   return (
     <Container maxW="container.xl" py={8}>
@@ -69,9 +73,9 @@ const CategoriesPage = () => {
         <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8}>
           {categories.map((category) => (
             <Box
-              key={category.id}
+              key={category._id}
               as={RouterLink}
-              to={`/products?category=${category.name.toLowerCase().replace(' ', '-')}`}
+              to={`/products?category=${category._id}`}
               bg={useColorModeValue('white', 'gray.800')}
               rounded="lg"
               overflow="hidden"
@@ -90,6 +94,11 @@ const CategoriesPage = () => {
                   objectFit="cover"
                   w="full"
                   h="full"
+                  fallback={<Skeleton height="200px" />}
+                  fallbackSrc={fallbackImageUrl}
+                  onError={(e) => {
+                    e.target.src = fallbackImageUrl;
+                  }}
                 />
               </Box>
               <Box p={6}>
@@ -110,7 +119,7 @@ const CategoriesPage = () => {
                     color={useColorModeValue('blue.600', 'blue.300')}
                     fontWeight="semibold"
                   >
-                    {category.productCount} Products
+                    View Products →
                   </Text>
                 </Stack>
               </Box>

@@ -1,5 +1,6 @@
 import asyncHandler from 'express-async-handler';
 import Product from '../models/Product.js';
+import mongoose from 'mongoose';
 
 // @desc    Fetch all products
 // @route   GET /api/products
@@ -13,7 +14,10 @@ const getProducts = asyncHandler(async (req, res) => {
 
   // Add category filter if provided
   if (req.query.category) {
-    query.category = req.query.category;
+    // Ensure the category is a valid ObjectId
+    if (mongoose.Types.ObjectId.isValid(req.query.category)) {
+      query.category = new mongoose.Types.ObjectId(req.query.category);
+    }
   }
 
   // Add text search if provided

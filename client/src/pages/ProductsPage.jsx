@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -22,40 +23,79 @@ import {
   ModalBody,
   ModalCloseButton,
   Badge,
+  Center,
+  Spinner,
+  Alert,
+  AlertIcon,
+  Skeleton,
 } from '@chakra-ui/react';
 import { HiShoppingCart, HiEye } from 'react-icons/hi';
+import { fetchProducts } from '../store/slices/productSlice';
+import { fetchCategories } from '../store/slices/categorySlice';
+import { addToCart } from '../store/slices/cartSlice';
 
 const ProductsPage = () => {
+  const dispatch = useDispatch();
+  const { products, loading, error } = useSelector((state) => state.products);
+  const { categories } = useSelector((state) => state.categories);
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const textColor = useColorModeValue('gray.900', 'white');
+  const textSecondary = useColorModeValue('gray.600', 'gray.300');
+  const accentColor = useColorModeValue('blue.600', 'blue.300');
   
-  // Mock products data - will be replaced with real data from backend
-  const products = [
-    { 
-      id: 1, 
-      name: 'Ergonomic Office Chair', 
-      price: 299.99, 
-      category: 'Chairs',
-      image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=200&q=80',
-      stock: 15
-    },
-    { 
-      id: 2, 
-      name: 'Standing Desk', 
-      price: 499.99, 
-      category: 'Desks',
-      image: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=200&q=80',
-      stock: 8
-    },
-    { 
-      id: 3, 
-      name: 'Filing Cabinet', 
-      price: 199.99, 
-      category: 'Storage',
-      image: 'https://images.unsplash.com/photo-1493934558415-9d19f0b2b4d2?auto=format&fit=crop&w=200&q=80',
-      stock: 12
-    }
-  ];
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [sortBy, setSortBy] = useState('');
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  const fallbackSrc = "https://via.placeholder.com/400x400?text=Product+Image";
+
+  // Initialize state from URL parameters on mount
+  useEffect(() => {
+    const categoryFromUrl = searchParams.get('category') || '';
+    const searchFromUrl = searchParams.get('search') || '';
+    const sortFromUrl = searchParams.get('sort') || '';
+
+    setSearchQuery(searchFromUrl);
+    setCategoryFilter(categoryFromUrl);
+    setSortBy(sortFromUrl);
+    setIsInitialized(true);
+  }, [searchParams]);
+
+  // Update URL when filters change (but only after initialization)
+  useEffect(() => {
+    if (!isInitialized) return;
+    
+    const params = new URLSearchParams();
+    if (categoryFilter) params.set('category', categoryFilter);
+    if (searchQuery) params.set('search', searchQuery);
+    if (sortBy) params.set('sort', sortBy);
+    setSearchParams(params);
+  }, [categoryFilter, searchQuery, sortBy, setSearchParams, isInitialized]);
+
+  useEffect(() => {
+    // Load categories when component mounts
+    dispatch(fetchCategories());
+  }, [dispatch]);
+
+  // Fetch products only after initialization is complete
+  useEffect(() => {
+    if (!isInitialized) return;
+    
+    dispatch(fetchProducts({
+      keyword: searchQuery,
+      category: categoryFilter,
+    }));
+  }, [dispatch, searchQuery, categoryFilter, isInitialized]);
+
+  // Update URL when category filter changes
+  const handleCategoryChange = (e) => {
+    const value = e.target.value;
+    setCategoryFilter(value);
+  };
 
   const handleQuickView = (product) => {
     setSelectedProduct(product);
@@ -63,118 +103,229 @@ const ProductsPage = () => {
   };
 
   const handleAddToCart = (product) => {
-    // Add to cart logic will be implemented with Redux
-    console.log('Adding to cart:', product);
+    dispatch(addToCart({
+      id: product._id,
+      name: product.name,
+      price: product.price,
+      image: product.image,
+      countInStock: product.countInStock,
+      qty: 1
+    }));
   };
+
+  const sortProducts = (productsToSort) => {
+    if (!sortBy) return productsToSort;
+
+    return [...productsToSort].sort((a, b) => {
+      switch (sortBy) {
+        case 'price-asc':
+          return a.price - b.price;
+        case 'price-desc':
+          return b.price - a.price;
+        case 'name':
+          return a.name.localeCompare(b.name);
+        default:
+          return 0;
+      }
+    });
+  };
+
+  const groupProductsByCategory = (productsToGroup) => {
+    // If a category filter is active, use a single group
+    if (categoryFilter) {
+      const activeCategory = categories.find(c => c._id === categoryFilter);
+      const groupName = activeCategory ? activeCategory.name : 'Products';
+      return {
+        [groupName]: productsToGroup
+      };
+    }
+
+    // Otherwise group by all categories
+    return productsToGroup.reduce((acc, product) => {
+      const category = typeof product.category === 'object' 
+        ? product.category.name 
+        : product.category;
+      
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(product);
+      return acc;
+    }, {});
+  };
+
+  // Don't render until initialization is complete
+  if (!isInitialized || loading) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <Center>
+          <Spinner size="xl" />
+        </Center>
+      </Container>
+    );
+  }
 
   return (
     <Container maxW="container.xl" py={8}>
       <Stack spacing={8}>
-        <Heading
-          as="h1"
-          size="xl"
-          color={useColorModeValue('gray.900', 'white')}
-        >
-          Our Products
-        </Heading>
+        {error && (
+          <Alert status="error">
+            <AlertIcon />
+            {error}
+          </Alert>
+        )}
+
+        <Box>
+          <Heading
+            as="h1"
+            size="xl"
+            color={textColor}
+            mb={4}
+          >
+            {categoryFilter ? categories.find(c => c._id === categoryFilter)?.name || 'Products' : 'Our Products'}
+          </Heading>
+          {!categoryFilter && (
+            <Text
+              color={textSecondary}
+              fontSize="lg"
+            >
+              Browse our complete collection of office furniture and accessories
+            </Text>
+          )}
+        </Box>
 
         {/* Filters and Search */}
-        <HStack spacing={4}>
+        <HStack spacing={4} wrap="wrap" gap={4}>
           <Input
             placeholder="Search products..."
-            maxW="sm"
+            maxW={{ base: "full", md: "sm" }}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <Select placeholder="Category" maxW="xs">
-            <option value="chairs">Chairs</option>
-            <option value="desks">Desks</option>
-            <option value="storage">Storage</option>
+          <Select 
+            placeholder="Category" 
+            maxW={{ base: "full", md: "xs" }}
+            value={categoryFilter}
+            onChange={handleCategoryChange}
+          >
+            <option value="">All Categories</option>
+            {categories.map((category) => (
+              <option key={category._id} value={category._id}>
+                {category.name}
+              </option>
+            ))}
           </Select>
-          <Select placeholder="Sort by" maxW="xs">
+          <Select 
+            placeholder="Sort by" 
+            maxW={{ base: "full", md: "xs" }}
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+          >
             <option value="price-asc">Price: Low to High</option>
             <option value="price-desc">Price: High to Low</option>
             <option value="name">Name</option>
           </Select>
         </HStack>
 
-        {/* Products Grid */}
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8}>
-          {products.map((product) => (
-            <Box
-              key={product.id}
-              bg={useColorModeValue('white', 'gray.800')}
-              p={6}
-              rounded="lg"
-              shadow="base"
-              _hover={{
-                transform: 'translateY(-5px)',
-                shadow: 'lg',
-              }}
-              transition="all 0.3s"
-            >
-              <Stack spacing={4}>
+        {/* Products by Category */}
+        {Object.entries(groupProductsByCategory(sortProducts(products))).map(([category, categoryProducts]) => (
+          <Stack key={category} spacing={4}>
+            {!categoryFilter && (
+              <Heading 
+                as="h2" 
+                size="lg" 
+                color={textColor}
+                pt={4}
+              >
+                {category}
+              </Heading>
+            )}
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8}>
+              {categoryProducts.map((product) => (
                 <Box
-                  as={RouterLink}
-                  to={`/products/${product.id}`}
-                  position="relative"
-                  h="200px"
-                  rounded="md"
-                  overflow="hidden"
+                  key={product._id}
+                  bg={bgColor}
+                  p={6}
+                  rounded="lg"
+                  shadow="base"
+                  _hover={{
+                    transform: 'translateY(-5px)',
+                    shadow: 'lg',
+                  }}
+                  transition="all 0.3s"
                 >
-                  <Image
-                    src={product.image}
-                    alt={product.name}
-                    w="full"
-                    h="full"
-                    objectFit="cover"
-                  />
-                </Box>
-                <Stack spacing={2}>
-                  <Heading 
-                    as={RouterLink}
-                    to={`/products/${product.id}`}
-                    size="md"
-                    _hover={{ color: useColorModeValue('blue.600', 'blue.300') }}
-                  >
-                    {product.name}
-                  </Heading>
-                  <Text color={useColorModeValue('gray.600', 'gray.300')}>
-                    {product.category}
-                  </Text>
-                  <Text
-                    fontSize="xl"
-                    fontWeight="bold"
-                    color={useColorModeValue('blue.600', 'blue.300')}
-                  >
-                    ${product.price.toFixed(2)}
-                  </Text>
-                  <HStack>
-                    <Button
-                      onClick={() => handleAddToCart(product)}
-                      colorScheme="blue"
-                      leftIcon={<HiShoppingCart />}
-                      flex="1"
+                  <Stack spacing={4}>
+                    <Box
+                      as={RouterLink}
+                      to={`/products/${product._id}`}
+                      position="relative"
+                      h="200px"
+                      rounded="md"
+                      overflow="hidden"
                     >
-                      Add to Cart
-                    </Button>
-                    <IconButton
-                      icon={<HiEye />}
-                      variant="outline"
-                      aria-label="Quick view"
-                      onClick={() => handleQuickView(product)}
-                    />
-                  </HStack>
-                </Stack>
-              </Stack>
-            </Box>
-          ))}
-        </SimpleGrid>
+                      <Image
+                        src={product.image}
+                        alt={product.name}
+                        w="full"
+                        h="full"
+                        objectFit="cover"
+                        fallback={<Skeleton height="200px" />}
+                        fallbackSrc={fallbackSrc}
+                        onError={(e) => {
+                          e.target.src = fallbackSrc;
+                        }}
+                      />
+                    </Box>
+                    <Stack spacing={2}>
+                      <Heading 
+                        as={RouterLink}
+                        to={`/products/${product._id}`}
+                        size="md"
+                        _hover={{ color: accentColor }}
+                      >
+                        {product.name}
+                      </Heading>
+                      <Text color={textSecondary}>
+                        {product.brand}
+                      </Text>
+                      <Text
+                        fontSize="xl"
+                        fontWeight="bold"
+                        color={accentColor}
+                      >
+                        ${product.price.toFixed(2)}
+                      </Text>
+                      <HStack>
+                        <Button
+                          onClick={() => handleAddToCart(product)}
+                          colorScheme="blue"
+                          leftIcon={<HiShoppingCart />}
+                          flex="1"
+                          isDisabled={!product.countInStock}
+                        >
+                          {product.countInStock ? 'Add to Cart' : 'Out of Stock'}
+                        </Button>
+                        <IconButton
+                          icon={<HiEye />}
+                          variant="outline"
+                          aria-label="Quick view"
+                          onClick={() => handleQuickView(product)}
+                        />
+                      </HStack>
+                    </Stack>
+                  </Stack>
+                </Box>
+              ))}
+            </SimpleGrid>
+          </Stack>
+        ))}
       </Stack>
 
       {/* Quick View Modal */}
       <Modal isOpen={isOpen} onClose={onClose} size="xl">
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>{selectedProduct?.name}</ModalHeader>
+          <ModalHeader>{selectedProduct?.name || ''}</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>
             {selectedProduct && (
@@ -185,20 +336,26 @@ const ProductsPage = () => {
                   height="300px"
                   objectFit="cover"
                   rounded="md"
+                  fallback={<Skeleton height="300px" width="100%" />}
+                  fallbackSrc={fallbackSrc}
+                  onError={(e) => {
+                    e.target.src = fallbackSrc;
+                  }}
                 />
                 <Stack spacing={4}>
-                  <Text color={useColorModeValue('gray.600', 'gray.300')}>
-                    Category: {selectedProduct.category}
+                  <Text color={textSecondary}>
+                    Category: {typeof selectedProduct.category === 'object' ? selectedProduct.category.name : selectedProduct.category}
                   </Text>
-                  <Text fontSize="2xl" fontWeight="bold" color={useColorModeValue('blue.600', 'blue.300')}>
+                  <Text fontSize="2xl" fontWeight="bold" color={accentColor}>
                     ${selectedProduct.price.toFixed(2)}
                   </Text>
-                  <Badge colorScheme={selectedProduct.stock > 0 ? 'green' : 'red'}>
-                    {selectedProduct.stock > 0 ? 'In Stock' : 'Out of Stock'}
+                  <Badge colorScheme={selectedProduct.countInStock > 0 ? 'green' : 'red'}>
+                    {selectedProduct.countInStock > 0 ? 'In Stock' : 'Out of Stock'}
                   </Badge>
+                  <Text>{selectedProduct.description}</Text>
                   <Button
                     as={RouterLink}
-                    to={`/products/${selectedProduct.id}`}
+                    to={`/products/${selectedProduct._id}`}
                     colorScheme="blue"
                     width="full"
                   >

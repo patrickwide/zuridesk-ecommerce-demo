@@ -5,6 +5,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ProductsPage from './pages/ProductsPage';
 import ProductDetailsPage from './pages/ProductDetailsPage';
+import NewProductsPage from './pages/NewProductsPage';
 import CategoriesPage from './pages/CategoriesPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
@@ -32,6 +33,7 @@ export const MainRoutes = () => (
     {/* Public routes */}
     <Route path="/" element={<HomePage />} />
     <Route path="/products" element={<ProductsPage />} />
+    <Route path="/products/new" element={<NewProductsPage />} />
     <Route path="/products/:id" element={<ProductDetailsPage />} />
     <Route path="/categories" element={<CategoriesPage />} />
     <Route path="/cart" element={<CartPage />} />

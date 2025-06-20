@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   Box,
   Container,
@@ -37,8 +38,13 @@ import {
   FormLabel,
   Textarea,
   IconButton,
+  Skeleton,
+  Alert,
+  AlertIcon,
+  Center,
+  Spinner,
 } from '@chakra-ui/react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { 
   HiCheck, 
   HiShoppingCart, 
@@ -50,53 +56,38 @@ import {
   HiShare,
   HiPencilAlt,
 } from 'react-icons/hi';
+import { fetchProductById } from '../store/slices/productSlice';
+import { addToCart } from '../store/slices/cartSlice';
 
 const ProductDetailsPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { product, loading, error } = useSelector((state) => state.products);
   const [quantity, setQuantity] = useState(1);
   const [isWishListed, setIsWishListed] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(0);
 
-  // Mock product data - will be replaced with Redux state
-  const product = {
-    id: 1,
-    name: 'Ergonomic Office Chair',
-    price: 299.99,
-    images: [
-      'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1580480055273-228ff5388ef8?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=800&q=80',
-    ],
-    description: 'Premium ergonomic office chair designed for maximum comfort during long work hours. Features adjustable height, lumbar support, and breathable mesh material.',
-    features: [
-      'Adjustable height and armrests',
-      'Breathable mesh back',
-      'Ergonomic lumbar support',
-      '360-degree swivel',
-      'Heavy-duty base with smooth-rolling casters'
-    ],
-    specifications: {
-      'Material': 'Mesh and High-grade Plastic',
-      'Weight Capacity': '300 lbs',
-      'Seat Height': '17-21 inches',
-      'Assembly Required': 'Yes',
-      'Warranty': '2 Years'
-    },
-    stock: 15,
-    sku: 'CHAIR-001',
-    category: 'Chairs',
-    rating: 4.5,
-    reviews: 128
-  };
+  useEffect(() => {
+    dispatch(fetchProductById(id));
+  }, [dispatch, id]);
 
   const handleAddToCart = () => {
-    // Handle add to cart logic here
-    console.log('Adding to cart:', { productId: id, quantity });
+    dispatch(addToCart({
+      id: product._id,
+      name: product.name,
+      price: product.price,
+      image: product.image,
+      countInStock: product.countInStock,
+      qty: quantity
+    }));
+    navigate('/cart');
   };
 
   const handleToggleWishlist = () => {
     setIsWishListed(!isWishListed);
-    // Add wishlist logic here
+    // Add wishlist logic here when implementing wishlist feature
   };
 
   const handleShare = async () => {
@@ -113,6 +104,38 @@ const ProductDetailsPage = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <Center>
+          <Spinner size="xl" />
+        </Center>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <Alert status="error">
+          <AlertIcon />
+          {error}
+        </Alert>
+      </Container>
+    );
+  }
+
+  if (!product) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <Alert status="error">
+          <AlertIcon />
+          Product not found
+        </Alert>
+      </Container>
+    );
+  }
+
   return (
     <Container maxW="container.xl" py={8}>
       <Grid templateColumns={{ base: '1fr', lg: '3fr 2fr' }} gap={8}>
@@ -125,33 +148,14 @@ const ProductDetailsPage = () => {
             shadow="base"
           >
             <Image
-              src={product.images[0]}
+              src={product.image}
               alt={product.name}
               width="full"
               height="500px"
               objectFit="cover"
               rounded="md"
+              fallback={<Skeleton height="500px" />}
             />
-            <HStack mt={4} spacing={4}>
-              {product.images.map((image, index) => (
-                <Box
-                  key={index}
-                  cursor="pointer"
-                  borderWidth="2px"
-                  borderColor={index === 0 ? 'blue.500' : 'transparent'}
-                  rounded="md"
-                  overflow="hidden"
-                >
-                  <Image
-                    src={image}
-                    alt={`${product.name} ${index + 1}`}
-                    width="100px"
-                    height="100px"
-                    objectFit="cover"
-                  />
-                </Box>
-              ))}
-            </HStack>
           </Box>
         </GridItem>
 
@@ -160,13 +164,15 @@ const ProductDetailsPage = () => {
           <Stack spacing={6}>
             <Box>
               <HStack justify="space-between" mb={2}>
-                <Badge colorScheme="green">In Stock</Badge>
+                <Badge colorScheme={product.countInStock > 0 ? 'green' : 'red'}>
+                  {product.countInStock > 0 ? 'In Stock' : 'Out of Stock'}
+                </Badge>
                 <HStack>
                   <HStack color="yellow.400">
                     <HiStar />
                     <Text>{product.rating}</Text>
                   </HStack>
-                  <Text color="gray.500">({product.reviews} reviews)</Text>
+                  <Text color="gray.500">({product.numReviews} reviews)</Text>
                 </HStack>
               </HStack>
               <Heading size="xl" mb={2}>{product.name}</Heading>
@@ -191,8 +197,9 @@ const ProductDetailsPage = () => {
                   value={quantity}
                   onChange={(value) => setQuantity(Number(value))}
                   min={1}
-                  max={product.stock}
+                  max={product.countInStock}
                   maxW="100px"
+                  isDisabled={!product.countInStock}
                 >
                   <NumberInputField />
                   <NumberInputStepper>
@@ -201,7 +208,7 @@ const ProductDetailsPage = () => {
                   </NumberInputStepper>
                 </NumberInput>
                 <Text color="gray.500">
-                  {product.stock} units available
+                  {product.countInStock} units available
                 </Text>
               </HStack>
               
@@ -212,6 +219,7 @@ const ProductDetailsPage = () => {
                   size="lg"
                   width="full"
                   leftIcon={<HiShoppingCart />}
+                  isDisabled={!product.countInStock}
                 >
                   Add to Cart
                 </Button>
@@ -276,34 +284,62 @@ const ProductDetailsPage = () => {
       <Box mt={12}>
         <Tabs>
           <TabList>
-            <Tab>Features</Tab>
+            <Tab>Description</Tab>
             <Tab>Specifications</Tab>
+            <Tab>Reviews</Tab>
             <Tab>Shipping</Tab>
           </TabList>
 
           <TabPanels>
             <TabPanel>
-              <List spacing={3}>
-                {product.features.map((feature, index) => (
-                  <ListItem key={index}>
-                    <ListIcon as={HiCheck} color="green.500" />
-                    {feature}
-                  </ListItem>
-                ))}
-              </List>
+              <Text>{product.description}</Text>
             </TabPanel>
 
             <TabPanel>
               <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={6}>
-                {Object.entries(product.specifications).map(([key, value]) => (
-                  <Box key={key}>
-                    <Text fontWeight="bold">{key}</Text>
-                    <Text color={useColorModeValue('gray.600', 'gray.400')}>
-                      {value}
-                    </Text>
-                  </Box>
-                ))}
+                <Box>
+                  <Text fontWeight="bold">Brand</Text>
+                  <Text color={useColorModeValue('gray.600', 'gray.400')}>
+                    {product.brand}
+                  </Text>
+                </Box>
+                <Box>
+                  <Text fontWeight="bold">Category</Text>
+                  <Text color={useColorModeValue('gray.600', 'gray.400')}>
+                    {typeof product.category === 'object' ? product.category.name : product.category}
+                  </Text>
+                </Box>
               </Grid>
+            </TabPanel>
+
+            <TabPanel>
+              <VStack align="stretch" spacing={4}>
+                {product.reviews && product.reviews.length > 0 ? (
+                  product.reviews.map((review, index) => (
+                    <Box
+                      key={index}
+                      p={4}
+                      bg={useColorModeValue('gray.50', 'gray.700')}
+                      rounded="md"
+                    >
+                      <HStack mb={2}>
+                        <Text fontWeight="bold">{review.name}</Text>
+                        <HStack color="yellow.400">
+                          {Array(5).fill('').map((_, i) => (
+                            <HiStar
+                              key={i}
+                              opacity={i < review.rating ? 1 : 0.3}
+                            />
+                          ))}
+                        </HStack>
+                      </HStack>
+                      <Text>{review.comment}</Text>
+                    </Box>
+                  ))
+                ) : (
+                  <Text>No reviews yet. Be the first to review this product!</Text>
+                )}
+              </VStack>
             </TabPanel>
 
             <TabPanel>

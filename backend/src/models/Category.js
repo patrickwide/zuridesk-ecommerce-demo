@@ -10,6 +10,11 @@ const categorySchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  image: {
+    type: String,
+    required: true,
+    default: 'https://via.placeholder.com/800x600',
+  },
   slug: {
     type: String,
     required: true,
