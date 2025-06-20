@@ -342,6 +342,14 @@ const ProductsPage = () => {
                     width="full"
                     onSuccess={onClose}
                   />
+                  <Button
+                    as={RouterLink}
+                    to={`/products/${selectedProduct._id}`}
+                    colorScheme="blue"
+                    width="full"
+                  >
+                    View Details
+                  </Button>
                 </Stack>
               </Stack>
             )}
