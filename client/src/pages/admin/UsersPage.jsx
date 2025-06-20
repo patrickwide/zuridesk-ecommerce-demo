@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Container,
@@ -29,9 +29,10 @@ import {
   AlertIcon,
   Spinner,
   Center,
-} from '@chakra-ui/react';
-import { HiPencil, HiTrash } from 'react-icons/hi';
-import userService from '../../services/userService';
+  useColorModeValue,
+} from "@chakra-ui/react";
+import { HiPencil, HiTrash } from "react-icons/hi";
+import userService from "../../services/userService";
 
 const UsersPage = () => {
   const [users, setUsers] = useState([]);
@@ -43,8 +44,8 @@ const UsersPage = () => {
 
   // Form state
   const [editForm, setEditForm] = useState({
-    name: '',
-    email: '',
+    name: "",
+    email: "",
     isAdmin: false,
   });
 
@@ -59,7 +60,7 @@ const UsersPage = () => {
       const data = await userService.getAllUsers();
       setUsers(data);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch users');
+      setError(err.response?.data?.message || "Failed to fetch users");
     } finally {
       setLoading(false);
     }
@@ -76,24 +77,24 @@ const UsersPage = () => {
   };
 
   const handleDelete = async (userId) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) {
+    if (!window.confirm("Are you sure you want to delete this user?")) {
       return;
     }
 
     try {
       await userService.deleteUser(userId);
-      setUsers(users.filter(user => user._id !== userId));
+      setUsers(users.filter((user) => user._id !== userId));
       toast({
-        title: 'User deleted successfully',
-        status: 'success',
+        title: "User deleted successfully",
+        status: "success",
         duration: 3000,
         isClosable: true,
       });
     } catch (err) {
       toast({
-        title: 'Error',
-        description: err.response?.data?.message || 'Failed to delete user',
-        status: 'error',
+        title: "Error",
+        description: err.response?.data?.message || "Failed to delete user",
+        status: "error",
         duration: 5000,
         isClosable: true,
       });
@@ -104,22 +105,27 @@ const UsersPage = () => {
     e.preventDefault();
 
     try {
-      const updatedUser = await userService.updateUser(selectedUser._id, editForm);
-      setUsers(users.map(user => 
-        user._id === selectedUser._id ? updatedUser : user
-      ));
+      const updatedUser = await userService.updateUser(
+        selectedUser._id,
+        editForm
+      );
+      setUsers(
+        users.map((user) =>
+          user._id === selectedUser._id ? updatedUser : user
+        )
+      );
       onClose();
       toast({
-        title: 'User updated successfully',
-        status: 'success',
+        title: "User updated successfully",
+        status: "success",
         duration: 3000,
         isClosable: true,
       });
     } catch (err) {
       toast({
-        title: 'Error',
-        description: err.response?.data?.message || 'Failed to update user',
-        status: 'error',
+        title: "Error",
+        description: err.response?.data?.message || "Failed to update user",
+        status: "error",
         duration: 5000,
         isClosable: true,
       });
@@ -148,48 +154,56 @@ const UsersPage = () => {
           </Alert>
         )}
 
-        <Table variant="simple">
-          <Thead>
-            <Tr>
-              <Th>ID</Th>
-              <Th>Name</Th>
-              <Th>Email</Th>
-              <Th>Admin</Th>
-              <Th>Created At</Th>
-              <Th>Actions</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {users.map((user) => (
-              <Tr key={user._id}>
-                <Td>{user._id}</Td>
-                <Td>{user.name}</Td>
-                <Td>{user.email}</Td>
-                <Td>{user.isAdmin ? 'Yes' : 'No'}</Td>
-                <Td>{new Date(user.createdAt).toLocaleDateString()}</Td>
-                <Td>
-                  <HStack spacing={2}>
-                    <IconButton
-                      icon={<HiPencil />}
-                      aria-label="Edit user"
-                      onClick={() => handleEdit(user)}
-                      colorScheme="blue"
-                      size="sm"
-                    />
-                    <IconButton
-                      icon={<HiTrash />}
-                      aria-label="Delete user"
-                      onClick={() => handleDelete(user._id)}
-                      colorScheme="red"
-                      size="sm"
-                      isDisabled={user.isAdmin}
-                    />
-                  </HStack>
-                </Td>
+        {/* Orders Table */}
+        <Box
+          bg={useColorModeValue("white", "gray.800")}
+          rounded="lg"
+          shadow="base"
+          overflow="hidden"
+        >
+          <Table variant="simple">
+            <Thead>
+              <Tr>
+                <Th>ID</Th>
+                <Th>Name</Th>
+                <Th>Email</Th>
+                <Th>Admin</Th>
+                <Th>Created At</Th>
+                <Th>Actions</Th>
               </Tr>
-            ))}
-          </Tbody>
-        </Table>
+            </Thead>
+            <Tbody>
+              {users.map((user) => (
+                <Tr key={user._id}>
+                  <Td>{user._id}</Td>
+                  <Td>{user.name}</Td>
+                  <Td>{user.email}</Td>
+                  <Td>{user.isAdmin ? "Yes" : "No"}</Td>
+                  <Td>{new Date(user.createdAt).toLocaleDateString()}</Td>
+                  <Td>
+                    <HStack spacing={2}>
+                      <IconButton
+                        icon={<HiPencil />}
+                        aria-label="Edit user"
+                        onClick={() => handleEdit(user)}
+                        colorScheme="blue"
+                        size="sm"
+                      />
+                      <IconButton
+                        icon={<HiTrash />}
+                        aria-label="Delete user"
+                        onClick={() => handleDelete(user._id)}
+                        colorScheme="red"
+                        size="sm"
+                        isDisabled={user.isAdmin}
+                      />
+                    </HStack>
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </Box>
       </Box>
 
       {/* Edit User Modal */}
@@ -203,7 +217,9 @@ const UsersPage = () => {
               <FormLabel>Name</FormLabel>
               <Input
                 value={editForm.name}
-                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, name: e.target.value })
+                }
               />
             </FormControl>
             <FormControl mb={4}>
@@ -211,14 +227,18 @@ const UsersPage = () => {
               <Input
                 type="email"
                 value={editForm.email}
-                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, email: e.target.value })
+                }
               />
             </FormControl>
             <FormControl mb={4}>
               <FormLabel>Admin Status</FormLabel>
               <Switch
                 isChecked={editForm.isAdmin}
-                onChange={(e) => setEditForm({ ...editForm, isAdmin: e.target.checked })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, isAdmin: e.target.checked })
+                }
                 isDisabled={selectedUser?.isAdmin}
               />
             </FormControl>

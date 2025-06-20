@@ -188,9 +188,6 @@ const ProductDetailsPage = () => {
             <Box>
               <AddToCart 
                 product={product}
-                showQuantity={true}
-                size="lg"
-                onSuccess={() => navigate('/cart')}
               />
               
               <HStack mt={4}>

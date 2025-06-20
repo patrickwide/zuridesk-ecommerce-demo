@@ -122,7 +122,10 @@ const NewProductsPage = () => {
                       {product.countInStock > 0 ? 'In Stock' : 'Out of Stock'}
                     </Badge>
                   </HStack>
-                  <AddToCart product={product} />
+                  <AddToCart product={product} 
+                                
+                  
+                  />
                 </Stack>
               </Stack>
             </Box>
