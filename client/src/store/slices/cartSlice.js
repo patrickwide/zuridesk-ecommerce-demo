@@ -1,46 +1,29 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import productService from '../../services/productService';
 
-// Get cart from localStorage
-const cartFromStorage = localStorage.getItem('cart')
-  ? JSON.parse(localStorage.getItem('cart'))
-  : { cartItems: [], shippingAddress: {}, paymentMethod: '' };
-
-// Async thunk for validating stock before adding to cart
+// Async Thunks
 export const validateAndAddToCart = createAsyncThunk(
-  'cart/validateAndAddToCart',
-  async ({ productId, qty }, { rejectWithValue, getState }) => {
+  'cart/validateAndAddToCart', // Update internal name to match export name
+  async ({ productId, qty }, { rejectWithValue }) => {
     try {
       const product = await productService.getById(productId);
-      
-      // Validate stock
+      if (!product) {
+        throw new Error('Product not found');
+      }
       if (product.countInStock < qty) {
-        return rejectWithValue('Product is out of stock');
+        throw new Error('Not enough stock available');
       }
-
-      // Calculate total quantity including existing items
-      const existingItem = getState().cart.cartItems.find(
-        (x) => x._id === productId
-      );
-      const totalQty = (existingItem ? existingItem.qty : 0) + qty;
-
-      if (product.countInStock < totalQty) {
-        return rejectWithValue('Not enough items in stock');
-      }
-
-      return {
-        _id: product._id,
-        name: product.name,
-        image: product.image,
-        price: product.price,
-        countInStock: product.countInStock,
-        qty
-      };
+      return { ...product, qty };
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to add to cart');
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );
+
+// Get cart from localStorage
+const cartFromStorage = localStorage.getItem('cart')
+  ? JSON.parse(localStorage.getItem('cart'))
+  : { cartItems: [], shippingAddress: null, paymentMethod: null };
 
 const cartSlice = createSlice({
   name: 'cart',
@@ -115,6 +98,7 @@ const cartSlice = createSlice({
     },
     clearCart: (state) => {
       state.cartItems = [];
+      // Don't clear shipping address when clearing cart
       localStorage.setItem('cart', JSON.stringify(state));
     }
   },
@@ -158,5 +142,7 @@ export const selectCartItemsCount = (state) =>
 // Selector to check if product is in cart
 export const selectCartItem = (state, productId) =>
   state.cart.cartItems.find((item) => item._id === productId);
+
+export const selectShippingAddress = (state) => state.cart.shippingAddress;
 
 export default cartSlice.reducer;

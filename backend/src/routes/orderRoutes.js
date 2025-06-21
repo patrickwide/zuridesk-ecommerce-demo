@@ -6,6 +6,7 @@ import {
   updateOrderToPaid,
   updateOrderToDelivered,
   getOrders,
+  updateOrderPaymentMethod,
 } from '../controllers/orderController.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
 
@@ -34,31 +35,127 @@ const router = express.Router();
  *                 type: array
  *                 items:
  *                   type: object
+ *                   required:
+ *                     - product
+ *                     - quantity
  *                   properties:
  *                     product:
  *                       type: string
- *                     qty:
+ *                       description: Product ID
+ *                     quantity:
  *                       type: number
+ *                       minimum: 1
+ *                       description: Quantity to order (must be greater than 0)
  *               shippingAddress:
  *                 type: object
+ *                 required:
+ *                   - name
+ *                   - phone
+ *                   - address
+ *                   - city
+ *                   - postalCode
+ *                   - county
+ *                   - country
  *                 properties:
+ *                   name:
+ *                     type: string
+ *                     description: Full name of the recipient
+ *                   phone:
+ *                     type: string
+ *                     description: Contact phone number
  *                   address:
  *                     type: string
+ *                     description: Street address
  *                   city:
  *                     type: string
  *                   postalCode:
+ *                     type: string
+ *                   county:
  *                     type: string
  *                   country:
  *                     type: string
  *               paymentMethod:
  *                 type: string
+ *                 enum: [PayPal, "Cash on Delivery"]
+ *                 description: Payment method for the order
  *     responses:
  *       201:
  *         description: Order created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                 user:
+ *                   type: string
+ *                 orderItems:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       product:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       image:
+ *                         type: string
+ *                       price:
+ *                         type: number
+ *                       quantity:
+ *                         type: number
+ *                 shippingAddress:
+ *                   type: object
+ *                   properties:
+ *                     name:
+ *                       type: string
+ *                     phone:
+ *                       type: string
+ *                     address:
+ *                       type: string
+ *                     city:
+ *                       type: string
+ *                     postalCode:
+ *                       type: string
+ *                     county:
+ *                       type: string
+ *                     country:
+ *                       type: string
+ *                 paymentMethod:
+ *                   type: string
+ *                 subtotal:
+ *                   type: number
+ *                 tax:
+ *                   type: number
+ *                 shipping:
+ *                   type: number
+ *                 total:
+ *                   type: number
+ *                 isPaid:
+ *                   type: boolean
+ *                 isDelivered:
+ *                   type: boolean
+ *                 status:
+ *                   type: string
  *       400:
  *         description: Invalid order data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
  *       401:
  *         description: Not authorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
  */
 /**
  * @swagger
@@ -190,5 +287,41 @@ router.route('/:id/pay').put(protect, updateOrderToPaid);
  *         description: Order not found
  */
 router.route('/:id/deliver').put(protect, admin, updateOrderToDelivered);
+
+/**
+ * @swagger
+ * /api/orders/{id}/payment-method:
+ *   put:
+ *     summary: Update order payment method
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Order ID  
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - paymentMethod
+ *             properties:
+ *               paymentMethod:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Payment method updated successfully
+ *       401:
+ *         description: Not authorized
+ *       404:
+ *         description: Order not found
+ */
+router.route('/:id/payment-method').put(protect, updateOrderPaymentMethod);
 
 export default router;

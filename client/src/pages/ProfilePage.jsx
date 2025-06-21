@@ -10,6 +10,7 @@ import {
   FormControl,
   FormLabel,
   Input,
+  FormErrorMessage,
   Grid,
   GridItem,
   useColorModeValue,
@@ -23,14 +24,19 @@ import {
   useToast,
   Alert,
   AlertIcon,
+  Divider,
 } from '@chakra-ui/react';
+import { Formik, Form } from 'formik';
 import { updateProfile } from '../store/slices/authSlice';
+import { saveShippingAddress } from '../store/slices/cartSlice';
+import { shippingAddressSchema } from '../utils/validationSchemas';
 
 const ProfilePage = () => {
   const dispatch = useDispatch();
   const toast = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const { user, loading, error } = useSelector((state) => state.auth);
+  const { shippingAddress } = useSelector((state) => state.cart);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -116,6 +122,29 @@ const ProfilePage = () => {
     setIsEditing(true);
   };
 
+  const handleShippingSubmit = async (values, { setSubmitting }) => {
+    try {
+      await dispatch(saveShippingAddress(values)).unwrap();
+      toast({
+        title: 'Shipping address saved',
+        description: 'Your shipping address has been updated successfully',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (err) {
+      toast({
+        title: 'Error saving address',
+        description: err.message || 'Something went wrong',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <Container maxW="container.xl" py={8}>
@@ -175,8 +204,8 @@ const ProfilePage = () => {
             <Tabs>
               <TabList>
                 <Tab>Profile</Tab>
-                <Tab>Orders</Tab>
                 <Tab>Addresses</Tab>
+                <Tab>Orders</Tab>
               </TabList>
 
               <TabPanels>
@@ -261,6 +290,135 @@ const ProfilePage = () => {
                   </Box>
                 </TabPanel>
 
+                {/* Addresses Tab */}
+                <TabPanel>
+                  <Box
+                    bg={useColorModeValue('white', 'gray.800')}
+                    p={6}
+                    rounded="lg"
+                    shadow="base"
+                  >
+                    <Stack spacing={6}>
+                      <Heading size="md">Shipping Address</Heading>
+                      <Divider />
+                      
+                      <Formik
+                        initialValues={{
+                          name: shippingAddress?.name || '',
+                          phone: shippingAddress?.phone || '',
+                          address: shippingAddress?.address || '',
+                          city: shippingAddress?.city || '',
+                          county: shippingAddress?.county || '',
+                          postalCode: shippingAddress?.postalCode || '',
+                          country: shippingAddress?.country || 'Kenya'
+                        }}
+                        validationSchema={shippingAddressSchema}
+                        onSubmit={handleShippingSubmit}
+                      >
+                        {({ handleSubmit, errors, touched, handleChange, handleBlur, values, isSubmitting }) => (
+                          <Form onSubmit={handleSubmit}>
+                            <Stack spacing={4}>
+                              <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={4}>
+                                <FormControl isInvalid={errors.name && touched.name}>
+                                  <FormLabel>Full Name</FormLabel>
+                                  <Input
+                                    name="name"
+                                    value={values.name}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                  />
+                                  <FormErrorMessage>{errors.name}</FormErrorMessage>
+                                </FormControl>
+
+                                <FormControl isInvalid={errors.phone && touched.phone}>
+                                  <FormLabel>Phone Number</FormLabel>
+                                  <Input
+                                    name="phone"
+                                    value={values.phone}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    placeholder="e.g., 0712345678"
+                                  />
+                                  <FormErrorMessage>{errors.phone}</FormErrorMessage>
+                                </FormControl>
+                              </Grid>
+
+                              <FormControl isInvalid={errors.address && touched.address}>
+                                <FormLabel>Address</FormLabel>
+                                <Input
+                                  name="address"
+                                  value={values.address}
+                                  onChange={handleChange}
+                                  onBlur={handleBlur}
+                                />
+                                <FormErrorMessage>{errors.address}</FormErrorMessage>
+                              </FormControl>
+
+                              <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={4}>
+                                <FormControl isInvalid={errors.city && touched.city}>
+                                  <FormLabel>City</FormLabel>
+                                  <Input
+                                    name="city"
+                                    value={values.city}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                  />
+                                  <FormErrorMessage>{errors.city}</FormErrorMessage>
+                                </FormControl>
+
+                                <FormControl isInvalid={errors.county && touched.county}>
+                                  <FormLabel>County</FormLabel>
+                                  <Input
+                                    name="county"
+                                    value={values.county}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                  />
+                                  <FormErrorMessage>{errors.county}</FormErrorMessage>
+                                </FormControl>
+                              </Grid>
+
+                              <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={4}>
+                                <FormControl isInvalid={errors.postalCode && touched.postalCode}>
+                                  <FormLabel>Postal Code</FormLabel>
+                                  <Input
+                                    name="postalCode"
+                                    value={values.postalCode}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                  />
+                                  <FormErrorMessage>{errors.postalCode}</FormErrorMessage>
+                                </FormControl>
+
+                                <FormControl isInvalid={errors.country && touched.country}>
+                                  <FormLabel>Country</FormLabel>
+                                  <Input
+                                    name="country"
+                                    value={values.country}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    readOnly
+                                  />
+                                  <FormErrorMessage>{errors.country}</FormErrorMessage>
+                                </FormControl>
+                              </Grid>
+
+                              <Button
+                                mt={4}
+                                colorScheme="blue"
+                                type="submit"
+                                isLoading={isSubmitting}
+                              >
+                                Save Shipping Address
+                              </Button>
+                            </Stack>
+                          </Form>
+                        )}
+                      </Formik>
+                    </Stack>
+                  </Box>
+                </TabPanel>
+
                 {/* Orders Tab */}
                 <TabPanel>
                   <Box
@@ -272,21 +430,6 @@ const ProfilePage = () => {
                     <Stack spacing={6}>
                       <Heading size="md">Order History</Heading>
                       <Text>Your order history will appear here once you make a purchase.</Text>
-                    </Stack>
-                  </Box>
-                </TabPanel>
-
-                {/* Addresses Tab */}
-                <TabPanel>
-                  <Box
-                    bg={useColorModeValue('white', 'gray.800')}
-                    p={6}
-                    rounded="lg"
-                    shadow="base"
-                  >
-                    <Stack spacing={6}>
-                      <Heading size="md">Saved Addresses</Heading>
-                      <Text>Address management coming soon.</Text>
                     </Stack>
                   </Box>
                 </TabPanel>

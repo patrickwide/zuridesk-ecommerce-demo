@@ -54,12 +54,15 @@ export const profileUpdateSchema = Yup.object().shape({
 });
 
 export const shippingAddressSchema = Yup.object().shape({
-  firstName: Yup.string()
-    .min(2, 'First name must be at least 2 characters')
-    .required('First name is required'),
-  lastName: Yup.string()
-    .min(2, 'Last name must be at least 2 characters')
-    .required('Last name is required'),
+  name: Yup.string()
+    .min(3, 'Name must be at least 3 characters')
+    .required('Name is required'),
+  phone: Yup.string()
+    .matches(
+      /^(?:\+254|0)\d{9}$/,
+      'Phone number must be a valid Kenyan number (e.g., 0712345678 or +254712345678)'
+    )
+    .required('Phone number is required'),
   address: Yup.string()
     .min(5, 'Address must be at least 5 characters')
     .required('Address is required'),
@@ -71,10 +74,6 @@ export const shippingAddressSchema = Yup.object().shape({
   postalCode: Yup.string()
     .matches(/^\d{5}$/, 'Postal code must be exactly 5 digits')
     .required('Postal code is required'),
-  phone: Yup.string()
-    .matches(
-      /^(?:\+254|0)\d{9}$/,
-      'Phone number must be a valid Kenyan number (e.g., +254700000000 or 0700000000)'
-    )
-    .required('Phone number is required'),
+  country: Yup.string()
+    .required('Country is required'),
 });

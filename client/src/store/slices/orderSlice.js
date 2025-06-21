@@ -68,6 +68,17 @@ export const updateOrderToDelivered = createAsyncThunk(
   }
 );
 
+export const updatePaymentMethod = createAsyncThunk(
+  'orders/updatePaymentMethod',
+  async ({ orderId, paymentMethod }, { rejectWithValue }) => {
+    try {
+      return await orderService.updatePaymentMethod(orderId, paymentMethod);
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to update payment method');
+    }
+  }
+);
+
 const initialState = {
   orders: [],
   order: null,
@@ -186,6 +197,23 @@ const orderSlice = createSlice({
         }
       })
       .addCase(updateOrderToDelivered.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Update Payment Method
+      .addCase(updatePaymentMethod.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updatePaymentMethod.fulfilled, (state, action) => {
+        state.loading = false;
+        state.order = action.payload;
+        const index = state.orders.findIndex(o => o._id === action.payload._id);
+        if (index !== -1) {
+          state.orders[index] = action.payload;
+        }
+      })
+      .addCase(updatePaymentMethod.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });

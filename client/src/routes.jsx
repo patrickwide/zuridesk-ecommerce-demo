@@ -20,6 +20,7 @@ import AdminOrdersPage from './pages/admin/OrdersPage';
 import AdminUsersPage from './pages/admin/UsersPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import OrderProtectedRoute from './components/OrderProtectedRoute';
 
 export const AuthRoutes = () => (
   <Routes>
@@ -40,10 +41,12 @@ export const MainRoutes = () => (
     
     {/* Protected routes */}
     <Route
-      path="/checkout"
+      path="/checkout/:orderId"
       element={
         <ProtectedRoute>
-          <CheckoutPage />
+          <OrderProtectedRoute>
+            <CheckoutPage />
+          </OrderProtectedRoute>
         </ProtectedRoute>
       }
     />
@@ -67,7 +70,9 @@ export const MainRoutes = () => (
       path="/orders/:id"
       element={
         <ProtectedRoute>
-          <OrderDetailsPage />
+          <OrderProtectedRoute>
+            <OrderDetailsPage />
+          </OrderProtectedRoute>
         </ProtectedRoute>
       }
     />

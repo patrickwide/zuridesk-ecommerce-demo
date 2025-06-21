@@ -21,14 +21,45 @@ class OrderService extends ApiService {
     return response.data;
   }
 
+  async getById(id) {
+    try {
+      const response = await apiClient.get(`${this.resourcePath}/${id}`);
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 403) {
+        throw new Error('You do not have permission to access this order');
+      }
+      throw error;
+    }
+  }
+
   async updateToPaid(orderId, paymentResult) {
-    const response = await apiClient.put(`${this.resourcePath}/${orderId}/pay`, paymentResult);
-    return response.data;
+    try {
+      const response = await apiClient.put(`${this.resourcePath}/${orderId}/pay`, paymentResult);
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 403) {
+        throw new Error('You do not have permission to update this order');
+      }
+      throw error;
+    }
   }
 
   async updateToDelivered(orderId) {
     const response = await apiClient.put(`${this.resourcePath}/${orderId}/deliver`);
     return response.data;
+  }
+
+  async updatePaymentMethod(orderId, paymentMethod) {
+    try {
+      const response = await apiClient.put(`${this.resourcePath}/${orderId}/payment-method`, { paymentMethod });
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 403) {
+        throw new Error('You do not have permission to modify this order');
+      }
+      throw error;
+    }
   }
 }
 

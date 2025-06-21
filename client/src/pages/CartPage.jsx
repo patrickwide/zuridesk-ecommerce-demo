@@ -26,20 +26,25 @@ import {
   Skeleton,
 } from "@chakra-ui/react";
 import { HiTrash, HiPlus, HiMinus } from "react-icons/hi";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import {
   removeFromCart,
   incrementCartItem,
   decrementCartItem,
   updateCartItemQty,
 } from "../store/slices/cartSlice";
+import { createOrder } from "../store/slices/orderSlice";
 
 const CartPage = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const toast = useToast();
-  const { cartItems } = useSelector((state) => state.cart);
+  const { cartItems, shippingAddress } = useSelector((state) => state.cart);
+  const { order, loading } = useSelector((state) => state.orders);
+  const { user } = useSelector((state) => state.auth);
   const fallbackSrc = "https://via.placeholder.com/60x60?text=Product";
 
+  // Calculate totals
   const subtotal = cartItems.reduce(
     (acc, item) => acc + item.price * item.qty,
     0
@@ -93,6 +98,76 @@ const CartPage = () => {
         isClosable: true,
       });
     }
+  };
+
+  const handleCreateOrder = async () => {
+    if (!user) {
+      navigate("/login?redirect=cart");
+      return;
+    }
+
+    // Validate shipping address
+    if (
+      !shippingAddress?.name ||
+      !shippingAddress?.phone ||
+      !shippingAddress?.address ||
+      !shippingAddress?.city ||
+      !shippingAddress?.postalCode ||
+      !shippingAddress?.county ||
+      !shippingAddress?.country
+    ) {
+      toast({
+        title: "Missing shipping information",
+        description: "Please complete your shipping address before checkout",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+      navigate("/profile");
+      return;
+    }
+
+    try {
+      const orderData = {
+        orderItems: cartItems.map((item) => ({
+          product: item._id,
+          quantity: item.qty,
+        })),
+        shippingAddress,
+        paymentMethod: "PayPal", // Set PayPal as default payment method
+      };
+
+      const result = await dispatch(createOrder(orderData)).unwrap();
+      toast({
+        title: "Order created",
+        description: "You can now proceed to checkout",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Could not create order",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleProceedToCheckout = () => {
+    if (!order?._id) {
+      toast({
+        title: "Create order first",
+        description: "Please create your order before proceeding to checkout",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    navigate(`/checkout/${order._id}`);
   };
 
   return (
@@ -295,19 +370,32 @@ const CartPage = () => {
                     </Text>
                   </Flex>
 
-                  <Button
-                    as={RouterLink}
-                    to="/checkout"
-                    colorScheme="blue"
-                    size="lg"
-                    width="full"
-                  >
-                    Proceed to Checkout (${total.toFixed(2)})
-                  </Button>
+                  <Stack spacing={4}>
+                    {!order?._id ? (
+                      <Button
+                        onClick={handleCreateOrder}
+                        colorScheme="blue"
+                        size="lg"
+                        width="full"
+                        isLoading={loading}
+                      >
+                        Create Order (${total.toFixed(2)})
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={handleProceedToCheckout}
+                        colorScheme="green"
+                        size="lg"
+                        width="full"
+                      >
+                        Proceed to Payment
+                      </Button>
+                    )}
 
-                  <Text fontSize="xs" color="gray.500" textAlign="center">
-                    Secure checkout with SSL encryption
-                  </Text>
+                    <Text fontSize="xs" color="gray.500" textAlign="center">
+                      Secure checkout with PayPal and SSL encryption
+                    </Text>
+                  </Stack>
                 </Stack>
               </Box>
             </Flex>

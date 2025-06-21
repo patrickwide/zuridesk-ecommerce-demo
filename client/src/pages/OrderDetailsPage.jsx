@@ -22,8 +22,9 @@ import {
   Center,
   Spinner,
   Skeleton,
+  useToast,
 } from '@chakra-ui/react';
-import { Link as RouterLink, useParams } from 'react-router-dom';
+import { Link as RouterLink, useParams, useNavigate } from 'react-router-dom';
 import { HiArrowLeft } from 'react-icons/hi';
 import { useDispatch, useSelector } from 'react-redux';
 import PayPalButton from '../components/ui/PayPalButton';
@@ -32,7 +33,10 @@ import { fetchOrderById } from '../store/slices/orderSlice';
 const OrderDetailsPage = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const toast = useToast();
   const { order, loading, error } = useSelector((state) => state.orders);
+  const { user } = useSelector((state) => state.auth);
   const fallbackSrc = "https://via.placeholder.com/100x100?text=Product";
 
   // Call all hooks at the top level, before any conditional returns
@@ -45,6 +49,20 @@ const OrderDetailsPage = () => {
       dispatch(fetchOrderById(id));
     }
   }, [dispatch, id]);
+
+  // Add ownership validation
+  useEffect(() => {
+    if (order && user && !user.isAdmin && order.user._id !== user._id) {
+      toast({
+        title: "Access Denied",
+        description: "You do not have permission to view this order",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+      navigate('/orders');
+    }
+  }, [order, user, navigate]);
 
   const getStatusColor = (status) => {
     switch (status) {

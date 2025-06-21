@@ -1,5 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import Order from '../models/Order.js';
+import Product from '../models/Product.js';
+import mongoose from 'mongoose';
 
 // @desc    Create new order
 // @route   POST /api/orders
@@ -9,30 +11,96 @@ const createOrder = asyncHandler(async (req, res) => {
     orderItems,
     shippingAddress,
     paymentMethod,
-    subtotal,
-    tax,
-    shipping,
-    total,
   } = req.body;
 
-  if (!orderItems || orderItems.length === 0) {
+  // Validation
+  if (!orderItems?.length) {
     res.status(400);
-    throw new Error('Your cart is empty. Please add items to create an order.');
+    throw new Error('No order items provided');
   }
 
-  const order = new Order({
-    user: req.user._id,
-    orderItems,
-    shippingAddress,
-    paymentMethod,
-    subtotal,
-    tax,
-    shipping,
-    total,
-  });
+  // Validate shipping address
+  const requiredFields = ['name', 'phone', 'address', 'city', 'postalCode', 'county', 'country'];
+  const missingFields = requiredFields.filter(field => !shippingAddress?.[field]);
+  if (missingFields.length) {
+    res.status(400);
+    throw new Error(`Missing required shipping fields: ${missingFields.join(', ')}`);
+  }
 
-  const createdOrder = await order.save();
-  res.status(201).json(createdOrder);
+  try {
+    const enrichedItems = [];
+    let subtotal = 0;
+
+    // Validate and update products atomically
+    for (const item of orderItems) {
+      if (!item.product || !item.quantity || item.quantity < 1) {
+        throw new Error('Invalid order item: Each item must have a product ID and quantity > 0');
+      }
+
+      // Find and update product stock atomically
+      const product = await Product.findOneAndUpdate(
+        { 
+          _id: item.product,
+          countInStock: { $gte: item.quantity }
+        },
+        { $inc: { countInStock: -item.quantity } },
+        { 
+          new: true,
+          runValidators: true
+        }
+      );
+
+      if (!product) {
+        // If any product update fails, rollback previous updates
+        for (const prevItem of enrichedItems) {
+          await Product.findByIdAndUpdate(
+            prevItem.product,
+            { $inc: { countInStock: prevItem.quantity } }
+          );
+        }
+        throw new Error(`Insufficient stock for product ID: ${item.product}`);
+      }
+
+      // Enrich order item with product details
+      const enrichedItem = {
+        product: product._id,
+        name: product.name,
+        image: product.image,
+        price: product.price,
+        quantity: item.quantity
+      };
+
+      enrichedItems.push(enrichedItem);
+      subtotal += product.price * item.quantity;
+    }
+
+    // Calculate totals
+    const tax = subtotal * 0.16; // 16% tax
+    const shipping = subtotal > 100 ? 0 : 250; // Free shipping over $100
+    const total = subtotal + tax + shipping;
+
+    // Create the order
+    const order = new Order({
+      user: req.user._id,
+      orderItems: enrichedItems,
+      shippingAddress,
+      paymentMethod,
+      subtotal,
+      tax,
+      shipping,
+      total,
+      isPaid: false,
+      isDelivered: false,
+      status: 'Processing'
+    });
+
+    const createdOrder = await order.save();
+    res.status(201).json(createdOrder);
+
+  } catch (error) {
+    res.status(400);
+    throw new Error(error.message);
+  }
 });
 
 // @desc    Get order by ID
@@ -66,12 +134,18 @@ const updateOrderToPaid = asyncHandler(async (req, res) => {
 
   if (!order) {
     res.status(404);
-    throw new Error('Order not found. It may have been deleted or the ID is incorrect.');
+    throw new Error('Order not found');
+  }
+
+  // Validate order ownership
+  if (!req.user.isAdmin && order.user.toString() !== req.user._id.toString()) {
+    res.status(403);
+    throw new Error('Not authorized to update this order');
   }
 
   if (order.isPaid) {
     res.status(400);
-    throw new Error('This order has already been paid for.');
+    throw new Error('This order has already been paid for');
   }
 
   order.isPaid = true;
@@ -170,6 +244,33 @@ const getOrders = asyncHandler(async (req, res) => {
   res.json(orders);
 });
 
+// @desc    Update order payment method
+// @route   PUT /api/orders/:id/payment-method
+// @access  Private
+const updateOrderPaymentMethod = asyncHandler(async (req, res) => {
+  const order = await Order.findById(req.params.id);
+
+  if (!order) {
+    res.status(404);
+    throw new Error('Order not found');
+  }
+
+  // Validate order ownership
+  if (!req.user.isAdmin && order.user.toString() !== req.user._id.toString()) {
+    res.status(403);
+    throw new Error('Not authorized to update this order');
+  }
+
+  if (order.isPaid) {
+    res.status(400);
+    throw new Error('Cannot change payment method after payment is made');
+  }
+
+  order.paymentMethod = req.body.paymentMethod;
+  const updatedOrder = await order.save();
+  res.json(updatedOrder);
+});
+
 export {
   createOrder,
   getOrderById,
@@ -177,4 +278,5 @@ export {
   updateOrderToDelivered,
   getMyOrders,
   getOrders,
+  updateOrderPaymentMethod,
 };
