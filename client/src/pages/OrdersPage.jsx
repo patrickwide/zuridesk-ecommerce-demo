@@ -22,6 +22,8 @@ import {
   InputRightElement,
   IconButton,
   useToast,
+  Image,
+  Skeleton,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { HiSearch, HiEye } from 'react-icons/hi';
@@ -39,6 +41,14 @@ const ORDER_STATUSES = {
 const OrdersPage = () => {
   const dispatch = useDispatch();
   const toast = useToast();
+  const fallbackSrc = "https://via.placeholder.com/50x50?text=Product";
+  
+  // Move all useColorModeValue calls to the top
+  const headingColor = useColorModeValue('gray.900', 'white');
+  const textColor = useColorModeValue('gray.600', 'gray.400');
+  const tableBg = useColorModeValue('white', 'gray.800');
+  const emptyStateBg = useColorModeValue('white', 'gray.800');
+  
   const { orders: ordersData, loading, error, filterParams } = useSelector((state) => state.orders);
   
   // Local state for form inputs and message
@@ -106,11 +116,11 @@ const OrdersPage = () => {
             as="h1"
             size="xl"
             mb={4}
-            color={useColorModeValue('gray.900', 'white')}
+            color={headingColor}
           >
             My Orders
           </Heading>
-          <Text color={useColorModeValue('gray.600', 'gray.400')}>
+          <Text color={textColor}>
             View and track your orders
           </Text>
         </Box>
@@ -163,7 +173,7 @@ const OrdersPage = () => {
           <Box textAlign="center" py={4} color="red.500">{error}</Box>
         ) : orders.length > 0 ? (
           <Box
-            bg={useColorModeValue('white', 'gray.800')}
+            bg={tableBg}
             rounded="lg"
             shadow="base"
             overflow="hidden"
@@ -188,9 +198,23 @@ const OrdersPage = () => {
                     <Td>
                       <Stack spacing={1}>
                         {order.orderItems.map((item, index) => (
-                          <Text key={index} fontSize="sm">
-                            {item.quantity}x {item.name}
-                          </Text>
+                          <HStack key={index} spacing={2}>
+                            <Image
+                              src={item.image}
+                              alt={item.name}
+                              boxSize="30px"
+                              objectFit="cover"
+                              rounded="md"
+                              fallback={<Skeleton boxSize="30px" rounded="md" />}
+                              fallbackSrc={fallbackSrc}
+                              onError={(e) => {
+                                e.target.src = fallbackSrc;
+                              }}
+                            />
+                            <Text fontSize="sm">
+                              {item.quantity}x {item.name}
+                            </Text>
+                          </HStack>
                         ))}
                       </Stack>
                     </Td>
@@ -225,7 +249,7 @@ const OrdersPage = () => {
           <Box
             p={8}
             textAlign="center"
-            bg={useColorModeValue('white', 'gray.800')}
+            bg={emptyStateBg}
             rounded="lg"
             shadow="base"
           >

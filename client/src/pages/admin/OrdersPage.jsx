@@ -32,6 +32,9 @@ import {
   List,
   ListItem,
   Divider,
+  Image,
+  Skeleton,
+  VStack,
 } from '@chakra-ui/react';
 import { 
   HiSearch, 
@@ -45,6 +48,7 @@ import {
 const OrdersPage = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const fallbackSrc = "https://via.placeholder.com/50x50?text=Product";
 
   // Mock orders data - will be replaced with Redux state
   const orders = [
@@ -276,11 +280,28 @@ const OrdersPage = () => {
                   <List spacing={3}>
                     {selectedOrder.items.map((item, index) => (
                       <ListItem key={index}>
-                        <HStack justify="space-between">
-                          <Text>
-                            {item.quantity}x {item.name}
-                          </Text>
-                          <Text>${(item.price * item.quantity).toFixed(2)}</Text>
+                        <HStack justify="space-between" align="center">
+                          <HStack>
+                            <Image
+                              src={item.image}
+                              alt={item.name}
+                              boxSize="50px"
+                              objectFit="cover"
+                              rounded="md"
+                              fallback={<Skeleton boxSize="50px" rounded="md" />}
+                              fallbackSrc={fallbackSrc}
+                              onError={(e) => {
+                                e.target.src = fallbackSrc;
+                              }}
+                            />
+                            <VStack align="start" spacing={0}>
+                              <Text fontWeight="medium">{item.name}</Text>
+                              <Text fontSize="sm" color="gray.500">
+                                Quantity: {item.quantity}
+                              </Text>
+                            </VStack>
+                          </HStack>
+                          <Text fontWeight="medium">${(item.price * item.quantity).toFixed(2)}</Text>
                         </HStack>
                       </ListItem>
                     ))}

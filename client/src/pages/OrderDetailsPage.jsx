@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Box,
   Container,
@@ -17,55 +17,34 @@ import {
   Flex,
   VStack,
   HStack,
+  Alert,
+  AlertIcon,
+  Center,
+  Spinner,
+  Skeleton,
 } from '@chakra-ui/react';
 import { Link as RouterLink, useParams } from 'react-router-dom';
 import { HiArrowLeft } from 'react-icons/hi';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import PayPalButton from '../components/ui/PayPalButton';
+import { fetchOrderById } from '../store/slices/orderSlice';
 
 const OrderDetailsPage = () => {
   const { id } = useParams();
-  const { order, loading, error } = useSelector((state) => state.order);
+  const dispatch = useDispatch();
+  const { order, loading, error } = useSelector((state) => state.orders);
+  const fallbackSrc = "https://via.placeholder.com/100x100?text=Product";
 
-  // Mock order data - will be replaced with Redux state/API call
-  const mockOrder = {
-    id: '1234',
-    date: '2025-06-15',
-    status: 'Delivered',
-    deliveryDate: '2025-06-18',
-    total: 799.98,
-    subtotal: 699.98,
-    shipping: 29.99,
-    tax: 70.01,
-    items: [
-      {
-        id: 1,
-        name: 'Ergonomic Office Chair',
-        price: 299.99,
-        quantity: 1,
-        image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=200&q=80'
-      },
-      {
-        id: 2,
-        name: 'Standing Desk',
-        price: 399.99,
-        quantity: 1,
-        image: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=200&q=80'
-      }
-    ],
-    shippingAddress: {
-      name: 'John Doe',
-      address: '123 Street Name',
-      city: 'Nairobi',
-      county: 'Nairobi',
-      postalCode: '00100',
-      phone: '+254 700 000000'
-    },
-    paymentMethod: 'M-PESA',
-    paymentDetails: 'MPESA123456789'
-  };
+  // Call all hooks at the top level, before any conditional returns
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const textColor = useColorModeValue('gray.900', 'white');
+  const subtextColor = useColorModeValue('gray.600', 'gray.400');
 
-  const orderData = order || mockOrder;
+  useEffect(() => {
+    if (id) {
+      dispatch(fetchOrderById(id));
+    }
+  }, [dispatch, id]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -80,9 +59,37 @@ const OrderDetailsPage = () => {
     }
   };
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>{error}</div>;
-  if (!order) return <div>Order not found</div>;
+  if (loading) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <Center>
+          <Spinner size="xl" />
+        </Center>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <Alert status="error">
+          <AlertIcon />
+          {error}
+        </Alert>
+      </Container>
+    );
+  }
+
+  if (!order) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <Alert status="error">
+          <AlertIcon />
+          Order not found
+        </Alert>
+      </Container>
+    );
+  }
 
   return (
     <Container maxW="container.xl" py={8}>
@@ -98,22 +105,22 @@ const OrderDetailsPage = () => {
             Back to Orders
           </Button>
           <Badge
-            colorScheme={getStatusColor(orderData.status)}
+            colorScheme={getStatusColor(order.status)}
             fontSize="md"
             px={4}
             py={2}
             rounded="full"
           >
-            {orderData.status}
+            {order.status}
           </Badge>
         </Stack>
 
         <Heading
           as="h1"
           size="xl"
-          color={useColorModeValue('gray.900', 'white')}
+          color={textColor}
         >
-          Order #{id}
+          Order #{order._id}
         </Heading>
 
         <Grid templateColumns={{ base: '1fr', lg: '2fr 1fr' }} gap={8}>
@@ -122,15 +129,15 @@ const OrderDetailsPage = () => {
             <Stack spacing={8}>
               {/* Order Items */}
               <Box
-                bg={useColorModeValue('white', 'gray.800')}
+                bg={bgColor}
                 p={6}
                 rounded="lg"
                 shadow="base"
               >
                 <Heading size="md" mb={6}>Order Items</Heading>
                 <Stack spacing={4}>
-                  {orderData.items.map((item) => (
-                    <Box key={item.id}>
+                  {order.orderItems.map((item) => (
+                    <Box key={item._id}>
                       <Flex gap={4}>
                         <Image
                           src={item.image}
@@ -138,10 +145,15 @@ const OrderDetailsPage = () => {
                           boxSize="100px"
                           objectFit="cover"
                           rounded="md"
+                          fallback={<Skeleton boxSize="100px" rounded="md" />}
+                          fallbackSrc={fallbackSrc}
+                          onError={(e) => {
+                            e.target.src = fallbackSrc;
+                          }}
                         />
                         <Stack flex="1">
                           <Text fontWeight="medium">{item.name}</Text>
-                          <Text color={useColorModeValue('gray.600', 'gray.400')}>
+                          <Text color={subtextColor}>
                             Quantity: {item.quantity}
                           </Text>
                           <Text fontWeight="medium">
@@ -157,19 +169,19 @@ const OrderDetailsPage = () => {
 
               {/* Shipping Information */}
               <Box
-                bg={useColorModeValue('white', 'gray.800')}
+                bg={bgColor}
                 p={6}
                 rounded="lg"
                 shadow="base"
               >
                 <Heading size="md" mb={6}>Shipping Information</Heading>
                 <VStack align="stretch" spacing={2}>
-                  <Text fontWeight="medium">{orderData.shippingAddress.name}</Text>
-                  <Text>{orderData.shippingAddress.address}</Text>
+                  <Text fontWeight="medium">{order.shippingAddress.name}</Text>
+                  <Text>{order.shippingAddress.address}</Text>
                   <Text>
-                    {orderData.shippingAddress.city}, {orderData.shippingAddress.county} {orderData.shippingAddress.postalCode}
+                    {order.shippingAddress.city}, {order.shippingAddress.county} {order.shippingAddress.postalCode}
                   </Text>
-                  <Text>{orderData.shippingAddress.phone}</Text>
+                  <Text>{order.shippingAddress.phone}</Text>
                 </VStack>
               </Box>
             </Stack>
@@ -178,7 +190,7 @@ const OrderDetailsPage = () => {
           {/* Order Summary */}
           <GridItem>
             <Box
-              bg={useColorModeValue('white', 'gray.800')}
+              bg={bgColor}
               p={6}
               rounded="lg"
               shadow="base"
@@ -191,42 +203,30 @@ const OrderDetailsPage = () => {
                 <List spacing={3}>
                   <ListItem>
                     <HStack justify="space-between">
-                      <Text color={useColorModeValue('gray.600', 'gray.400')}>
+                      <Text color={subtextColor}>
                         Order Date
                       </Text>
-                      <Text>{orderData.date}</Text>
+                      <Text>{new Date(order.createdAt).toLocaleDateString()}</Text>
                     </HStack>
                   </ListItem>
-                  {orderData.deliveryDate && (
+                  {order.deliveredAt && (
                     <ListItem>
                       <HStack justify="space-between">
-                        <Text color={useColorModeValue('gray.600', 'gray.400')}>
+                        <Text color={subtextColor}>
                           Delivery Date
                         </Text>
-                        <Text>{orderData.deliveryDate}</Text>
+                        <Text>{new Date(order.deliveredAt).toLocaleDateString()}</Text>
                       </HStack>
                     </ListItem>
                   )}
                   <ListItem>
                     <HStack justify="space-between">
-                      <Text color={useColorModeValue('gray.600', 'gray.400')}>
+                      <Text color={subtextColor}>
                         Payment Method
                       </Text>
-                      <Text>{orderData.paymentMethod}</Text>
+                      <Text>{order.paymentMethod}</Text>
                     </HStack>
                   </ListItem>
-                  {orderData.paymentDetails && (
-                    <ListItem>
-                      <HStack justify="space-between">
-                        <Text color={useColorModeValue('gray.600', 'gray.400')}>
-                          Transaction ID
-                        </Text>
-                        <Text fontSize="sm" fontFamily="mono">
-                          {orderData.paymentDetails}
-                        </Text>
-                      </HStack>
-                    </ListItem>
-                  )}
                 </List>
 
                 <Divider />
@@ -235,19 +235,21 @@ const OrderDetailsPage = () => {
                   <ListItem>
                     <HStack justify="space-between">
                       <Text>Subtotal</Text>
-                      <Text>${orderData.subtotal.toFixed(2)}</Text>
+                      <Text>${order.subtotal.toFixed(2)}</Text>
                     </HStack>
                   </ListItem>
                   <ListItem>
                     <HStack justify="space-between">
                       <Text>Shipping</Text>
-                      <Text>${orderData.shipping.toFixed(2)}</Text>
+                      <Text>
+                        {order.shipping === 0 ? "FREE" : `$${order.shipping.toFixed(2)}`}
+                      </Text>
                     </HStack>
                   </ListItem>
                   <ListItem>
                     <HStack justify="space-between">
-                      <Text>Tax</Text>
-                      <Text>${orderData.tax.toFixed(2)}</Text>
+                      <Text>Tax (16%)</Text>
+                      <Text>${order.tax.toFixed(2)}</Text>
                     </HStack>
                   </ListItem>
                   <Divider />
@@ -255,17 +257,34 @@ const OrderDetailsPage = () => {
                     <HStack justify="space-between">
                       <Text fontWeight="bold">Total</Text>
                       <Text fontWeight="bold">
-                        ${orderData.total.toFixed(2)}
+                        ${order.total.toFixed(2)}
                       </Text>
                     </HStack>
                   </ListItem>
                 </List>
 
+                {/* PayPal Button - Shown only if order is not paid */}
+                {!order.isPaid && (
+                  <Box mt={4}>
+                    <PayPalButton orderId={order._id} total={order.total} />
+                  </Box>
+                )}
+
+                {/* Show payment status */}
+                <Badge 
+                  colorScheme={order.isPaid ? 'green' : 'yellow'}
+                  p={2}
+                  textAlign="center"
+                >
+                  {order.isPaid ? 'Paid' : 'Payment Pending'}
+                </Badge>
+
                 <Button
                   as={RouterLink}
-                  to={`/support/order/${id}`}
+                  to="/support"
                   colorScheme="blue"
                   variant="outline"
+                  size="sm"
                 >
                   Need Help?
                 </Button>
@@ -273,13 +292,6 @@ const OrderDetailsPage = () => {
             </Box>
           </GridItem>
         </Grid>
-
-        {/* PayPal Button - Shown only if order is not paid */}
-        {!orderData.isPaid && (
-          <Box mt={4}>
-            <PayPalButton orderId={orderData.id} total={orderData.total} />
-          </Box>
-        )}
       </Stack>
     </Container>
   );
