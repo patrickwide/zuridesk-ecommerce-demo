@@ -107,10 +107,7 @@ const createOrder = asyncHandler(async (req, res) => {
 // @route   GET /api/orders/:id
 // @access  Private
 const getOrderById = asyncHandler(async (req, res) => {
-  const order = await Order.findById(req.params.id).populate(
-    'user',
-    'name email'
-  );
+  const order = await Order.findById(req.params.id).populate('user', 'name email _id');
 
   if (!order) {
     res.status(404);
@@ -118,6 +115,7 @@ const getOrderById = asyncHandler(async (req, res) => {
   }
 
   // Make sure the user is either an admin or the order owner
+  // Compare string versions of IDs to ensure proper comparison
   if (!req.user.isAdmin && order.user._id.toString() !== req.user._id.toString()) {
     res.status(403);
     throw new Error('You do not have permission to view this order.');

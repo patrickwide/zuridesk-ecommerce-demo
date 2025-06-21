@@ -26,9 +26,6 @@ class OrderService extends ApiService {
       const response = await apiClient.get(`${this.resourcePath}/${id}`);
       return response.data;
     } catch (error) {
-      if (error.response?.status === 403) {
-        throw new Error('You do not have permission to access this order');
-      }
       throw error;
     }
   }

@@ -124,7 +124,7 @@ const ProfilePage = () => {
 
   const handleShippingSubmit = async (values, { setSubmitting }) => {
     try {
-      await dispatch(saveShippingAddress(values)).unwrap();
+      dispatch(saveShippingAddress(values));
       toast({
         title: 'Shipping address saved',
         description: 'Your shipping address has been updated successfully',

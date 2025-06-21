@@ -21,6 +21,7 @@ import AdminUsersPage from './pages/admin/UsersPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import OrderProtectedRoute from './components/OrderProtectedRoute';
+import SupportPage from './pages/SupportPage';
 
 export const AuthRoutes = () => (
   <Routes>
@@ -38,6 +39,7 @@ export const MainRoutes = () => (
     <Route path="/products/:id" element={<ProductDetailsPage />} />
     <Route path="/categories" element={<CategoriesPage />} />
     <Route path="/cart" element={<CartPage />} />
+    <Route path="/support" element={<SupportPage />} />
     
     {/* Protected routes */}
     <Route

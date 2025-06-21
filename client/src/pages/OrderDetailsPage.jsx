@@ -60,20 +60,6 @@ const OrderDetailsPage = () => {
     }
   }, [dispatch, id]);
 
-  // Add ownership validation
-  useEffect(() => {
-    if (order && user && !user.isAdmin && order.user._id !== user._id) {
-      toast({
-        title: "Access Denied",
-        description: "You do not have permission to view this order",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-      navigate('/orders');
-    }
-  }, [order, user, navigate]);
-
   const getStatusColor = (status) => {
     switch (status) {
       case 'Delivered':
@@ -331,8 +317,19 @@ const OrderDetailsPage = () => {
 
                 {/* PayPal Button - only if order is not paid */}
                 {!order.isPaid && order.status !== 'Cancelled' && (
-                  <Box mt={4}>
-                    <PayPalButton orderId={order._id} total={order.total} />
+                  <Box>
+                    <Stack spacing={4}>
+                      <PayPalButton orderId={order._id} total={order.total} />
+                      <Button
+                        as={RouterLink}
+                        to={`/checkout/${order._id}`}
+                        colorScheme="blue"
+                        size="lg"
+                        width="full"
+                      >
+                        Go to Checkout
+                      </Button>
+                    </Stack>
                   </Box>
                 )}
 

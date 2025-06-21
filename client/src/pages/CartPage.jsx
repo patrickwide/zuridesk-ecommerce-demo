@@ -116,7 +116,7 @@ const CartPage = () => {
   const handleCreateOrder = async () => {
     if (!user) {
       navigate("/login?redirect=cart");
-      return;
+      return null;
     }
 
     // Validate shipping address
@@ -137,7 +137,7 @@ const CartPage = () => {
         isClosable: true,
       });
       navigate("/profile");
-      return;
+      return null;
     }
 
     try {
@@ -163,7 +163,9 @@ const CartPage = () => {
           duration: 3000,
           isClosable: true,
         });
+        return result;
       }
+      return null;
     } catch (err) {
       toast({
         title: "Error",
@@ -172,24 +174,10 @@ const CartPage = () => {
         duration: 5000,
         isClosable: true,
       });
+      return null;
     }
   };
 
-  const handleProceedToCheckout = () => {
-    if (!order?._id) {
-      toast({
-        title: "Create order first",
-        description: "Please create your order before proceeding to checkout",
-        status: "warning",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-    
-    // Navigate to checkout
-    navigate(`/checkout/${order._id}`);
-  };
 
   // Add these near the top with other hooks
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -461,7 +449,8 @@ const CartPage = () => {
                       </Button>
                     ) : (
                       <Button
-                        onClick={handleProceedToCheckout}
+                        as={RouterLink}
+                        to={`/checkout/${order._id}`}
                         colorScheme="green"
                         size="lg"
                         width="full"

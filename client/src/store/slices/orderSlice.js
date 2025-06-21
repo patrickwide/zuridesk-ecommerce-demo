@@ -41,7 +41,11 @@ export const fetchOrderById = createAsyncThunk(
     try {
       return await orderService.getById(id);
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch order');
+      // Pass through the server error message directly
+      if (error.response?.data?.message) {
+        return rejectWithValue(error.response.data.message);
+      }
+      return rejectWithValue('Failed to fetch order');
     }
   }
 );

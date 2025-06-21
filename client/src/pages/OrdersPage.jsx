@@ -230,15 +230,27 @@ const OrdersPage = () => {
                       </Badge>
                     </Td>
                     <Td>
-                      <Button
-                        as={RouterLink}
-                        to={`/orders/${order._id}`}
-                        size="sm"
-                        leftIcon={<HiEye />}
-                        variant="ghost"
-                      >
-                        View
-                      </Button>
+                      <HStack spacing={2}>
+                        <Button
+                          as={RouterLink}
+                          to={`/orders/${order._id}`}
+                          size="sm"
+                          leftIcon={<HiEye />}
+                          variant="ghost"
+                        >
+                          View
+                        </Button>
+                        {!order.isPaid && order.status !== 'Cancelled' && (
+                          <Button
+                            as={RouterLink}
+                            to={`/checkout/${order._id}`}
+                            size="sm"
+                            colorScheme="blue"
+                          >
+                            Checkout
+                          </Button>
+                        )}
+                      </HStack>
                     </Td>
                   </Tr>
                 ))}

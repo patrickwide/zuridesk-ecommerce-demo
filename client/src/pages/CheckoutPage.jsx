@@ -51,13 +51,6 @@ const CheckoutPage = () => {
       try {
         await dispatch(fetchOrderById(orderId)).unwrap();
       } catch (err) {
-        toast({
-          title: "Error",
-          description: err.message || "Failed to load order",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
         navigate('/cart');
       }
     };
@@ -68,41 +61,13 @@ const CheckoutPage = () => {
     return () => {
       dispatch(resetOrder());
     };
-  }, [dispatch, orderId, user, navigate, toast]);
+  }, [dispatch, orderId, user, navigate]);
 
   useEffect(() => {
-    if (order) {
-      // Check order ownership
-      if (user && !user.isAdmin && order.user._id !== user._id) {
-        toast({
-          title: "Access Denied",
-          description: "You do not have permission to access this order",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-        navigate('/orders');
-        return;
-      }
-
-      // Redirect if order is already paid
-      if (order.isPaid) {
-        toast({
-          title: "Order Already Paid",
-          description: "This order has already been paid for",
-          status: "info",
-          duration: 5000,
-          isClosable: true,
-        });
-        navigate(`/orders/${orderId}`);
-      }
-
-      // Set payment method from order if it exists
-      if (order.paymentMethod) {
-        setPaymentMethod(order.paymentMethod);
-      }
+    if (order?.paymentMethod) {
+      setPaymentMethod(order.paymentMethod);
     }
-  }, [order, user, navigate, toast, orderId]);
+  }, [order]);
 
   const handlePaymentMethodSelect = async (value) => {
     if (isProcessing) return;
