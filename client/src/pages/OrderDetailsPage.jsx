@@ -37,6 +37,17 @@ import { useDispatch, useSelector } from 'react-redux';
 import PayPalButton from '../components/ui/PayPalButton';
 import { fetchOrderById, cancelOrder } from '../store/slices/orderSlice';
 
+const formatDateTime = (date) => {
+  return new Date(date).toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
+};
+
 const OrderDetailsPage = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
@@ -245,16 +256,26 @@ const OrderDetailsPage = () => {
                       <Text color={subtextColor}>
                         Order Date
                       </Text>
-                      <Text>{new Date(order.createdAt).toLocaleDateString()}</Text>
+                      <Text>{formatDateTime(order.createdAt)}</Text>
                     </HStack>
                   </ListItem>
+                  {order.paidAt && (
+                    <ListItem>
+                      <HStack justify="space-between">
+                        <Text color={subtextColor}>
+                          Payment Date
+                        </Text>
+                        <Text color="green.500">{formatDateTime(order.paidAt)}</Text>
+                      </HStack>
+                    </ListItem>
+                  )}
                   {order.deliveredAt && (
                     <ListItem>
                       <HStack justify="space-between">
                         <Text color={subtextColor}>
                           Delivery Date
                         </Text>
-                        <Text>{new Date(order.deliveredAt).toLocaleDateString()}</Text>
+                        <Text color="blue.500">{formatDateTime(order.deliveredAt)}</Text>
                       </HStack>
                     </ListItem>
                   )}

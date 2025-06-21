@@ -30,6 +30,17 @@ import { HiSearch, HiEye } from 'react-icons/hi';
 import { fetchMyOrders, updateFilterParams } from '../store/slices/orderSlice';
 import { useDebounce } from 'use-debounce';
 
+const formatDateTime = (date) => {
+  return new Date(date).toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
+};
+
 const ORDER_STATUSES = {
   ALL: 'all',
   PROCESSING: 'Processing',
@@ -182,7 +193,7 @@ const OrdersPage = () => {
               <Thead>
                 <Tr>
                   <Th>Order ID</Th>
-                  <Th>Date</Th>
+                  <Th>Date & Time</Th>
                   <Th>Items</Th>
                   <Th>Total</Th>
                   <Th>Status</Th>
@@ -194,7 +205,7 @@ const OrdersPage = () => {
                 {orders.map((order) => (
                   <Tr key={order._id}>
                     <Td fontWeight="medium">#{order._id.slice(-6)}</Td>
-                    <Td>{new Date(order.createdAt).toLocaleDateString()}</Td>
+                    <Td>{formatDateTime(order.createdAt)}</Td>
                     <Td>
                       <Stack spacing={1}>
                         {order.orderItems.map((item, index) => (
