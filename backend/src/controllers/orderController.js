@@ -271,6 +271,40 @@ const updateOrderPaymentMethod = asyncHandler(async (req, res) => {
   res.json(updatedOrder);
 });
 
+// @desc    Cancel order
+// @route   PUT /api/orders/:id/cancel
+// @access  Private
+const cancelOrder = asyncHandler(async (req, res) => {
+  const order = await Order.findById(req.params.id);
+
+  if (!order) {
+    res.status(404);
+    throw new Error('Order not found');
+  }
+
+  // Validate order ownership
+  if (!req.user.isAdmin && order.user.toString() !== req.user._id.toString()) {
+    res.status(403);
+    throw new Error('Not authorized to cancel this order');
+  }
+
+  // Cannot cancel if already paid
+  if (order.isPaid) {
+    res.status(400);
+    throw new Error('Cannot cancel paid orders');
+  }
+
+  // Cannot cancel if shipped or delivered
+  if (order.status === 'Shipped' || order.status === 'Delivered') {
+    res.status(400);
+    throw new Error('Cannot cancel orders that have been shipped or delivered');
+  }
+
+  order.status = 'Cancelled';
+  const updatedOrder = await order.save();
+  res.json(updatedOrder);
+});
+
 export {
   createOrder,
   getOrderById,
@@ -279,4 +313,5 @@ export {
   getMyOrders,
   getOrders,
   updateOrderPaymentMethod,
+  cancelOrder,
 };

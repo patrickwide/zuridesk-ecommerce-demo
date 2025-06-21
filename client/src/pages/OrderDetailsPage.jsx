@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Container,
@@ -23,12 +23,19 @@ import {
   Spinner,
   Skeleton,
   useToast,
+  useDisclosure,
+  AlertDialog,
+  AlertDialogOverlay,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogBody,
+  AlertDialogFooter,
 } from '@chakra-ui/react';
 import { Link as RouterLink, useParams, useNavigate } from 'react-router-dom';
 import { HiArrowLeft } from 'react-icons/hi';
 import { useDispatch, useSelector } from 'react-redux';
 import PayPalButton from '../components/ui/PayPalButton';
-import { fetchOrderById } from '../store/slices/orderSlice';
+import { fetchOrderById, cancelOrder } from '../store/slices/orderSlice';
 
 const OrderDetailsPage = () => {
   const { id } = useParams();
@@ -38,6 +45,9 @@ const OrderDetailsPage = () => {
   const { order, loading, error } = useSelector((state) => state.orders);
   const { user } = useSelector((state) => state.auth);
   const fallbackSrc = "https://via.placeholder.com/100x100?text=Product";
+  const [isCancelling, setIsCancelling] = useState(false);
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const cancelRef = React.useRef();
 
   // Call all hooks at the top level, before any conditional returns
   const bgColor = useColorModeValue('white', 'gray.800');
@@ -74,6 +84,31 @@ const OrderDetailsPage = () => {
         return 'red';
       default:
         return 'gray';
+    }
+  };
+
+  const handleCancelOrder = async () => {
+    try {
+      setIsCancelling(true);
+      await dispatch(cancelOrder(order._id)).unwrap();
+      toast({
+        title: "Order cancelled",
+        description: "Your order has been cancelled successfully",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      onClose();
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Could not cancel order",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -281,8 +316,21 @@ const OrderDetailsPage = () => {
                   </ListItem>
                 </List>
 
-                {/* PayPal Button - Shown only if order is not paid */}
-                {!order.isPaid && (
+                {/* Show cancel button only if order is not paid and not shipped/delivered */}
+                {order.status === 'Processing' && !order.isPaid && (
+                  <Button
+                    colorScheme="red"
+                    variant="outline"
+                    width="full"
+                    onClick={onOpen}
+                    isLoading={isCancelling}
+                  >
+                    Cancel Order
+                  </Button>
+                )}
+
+                {/* PayPal Button - only if order is not paid */}
+                {!order.isPaid && order.status !== 'Cancelled' && (
                   <Box mt={4}>
                     <PayPalButton orderId={order._id} total={order.total} />
                   </Box>
@@ -311,6 +359,34 @@ const OrderDetailsPage = () => {
           </GridItem>
         </Grid>
       </Stack>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog
+        isOpen={isOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Cancel Order
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              Are you sure you want to cancel this order? This action cannot be undone.
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onClose}>
+                No, Keep Order
+              </Button>
+              <Button colorScheme="red" onClick={handleCancelOrder} ml={3} isLoading={isCancelling}>
+                Yes, Cancel Order
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </Container>
   );
 };

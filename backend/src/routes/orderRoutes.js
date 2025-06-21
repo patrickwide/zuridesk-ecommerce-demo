@@ -7,6 +7,7 @@ import {
   updateOrderToDelivered,
   getOrders,
   updateOrderPaymentMethod,
+  cancelOrder,
 } from '../controllers/orderController.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
 
@@ -323,5 +324,30 @@ router.route('/:id/deliver').put(protect, admin, updateOrderToDelivered);
  *         description: Order not found
  */
 router.route('/:id/payment-method').put(protect, updateOrderPaymentMethod);
+
+/**
+ * @swagger
+ * /api/orders/{id}/cancel:
+ *   put:
+ *     summary: Cancel an order
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Order ID
+ *     responses:
+ *       200:
+ *         description: Order canceled successfully
+ *       401:
+ *         description: Not authorized
+ *       404:
+ *         description: Order not found
+ */
+router.route('/:id/cancel').put(protect, cancelOrder);
 
 export default router;

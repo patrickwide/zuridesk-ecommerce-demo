@@ -23,7 +23,7 @@ import {
   AlertIcon,
 } from '@chakra-ui/react';
 import PayPalButton from '../components/ui/PayPalButton';
-import { fetchOrderById, updatePaymentMethod } from '../store/slices/orderSlice';
+import { fetchOrderById, resetOrder, updatePaymentMethod } from '../store/slices/orderSlice';
 import { clearCart } from '../store/slices/cartSlice';
 
 const CheckoutPage = () => {
@@ -33,52 +33,119 @@ const CheckoutPage = () => {
   const toast = useToast();
   const { order, loading, error } = useSelector((state) => state.orders);
   const { user } = useSelector((state) => state.auth);
-  const [paymentMethod, setPaymentMethod] = useState('PayPal'); // Set PayPal as default
+  const [paymentMethod, setPaymentMethod] = useState('PayPal');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     if (!orderId) {
       navigate('/cart');
       return;
     }
-    
-    dispatch(fetchOrderById(orderId));
-  }, [dispatch, orderId, navigate]);
 
-  useEffect(() => {
     if (!user) {
       navigate('/login?redirect=checkout');
       return;
     }
-  }, [user, navigate]);
 
-  // Add ownership validation
+    const loadOrder = async () => {
+      try {
+        await dispatch(fetchOrderById(orderId)).unwrap();
+      } catch (err) {
+        toast({
+          title: "Error",
+          description: err.message || "Failed to load order",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        navigate('/cart');
+      }
+    };
+
+    loadOrder();
+
+    // Cleanup - reset order state when leaving checkout
+    return () => {
+      dispatch(resetOrder());
+    };
+  }, [dispatch, orderId, user, navigate, toast]);
+
   useEffect(() => {
-    if (order && user && !user.isAdmin && order.user._id !== user._id) {
+    if (order) {
+      // Check order ownership
+      if (user && !user.isAdmin && order.user._id !== user._id) {
+        toast({
+          title: "Access Denied",
+          description: "You do not have permission to access this order",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        navigate('/orders');
+        return;
+      }
+
+      // Redirect if order is already paid
+      if (order.isPaid) {
+        toast({
+          title: "Order Already Paid",
+          description: "This order has already been paid for",
+          status: "info",
+          duration: 5000,
+          isClosable: true,
+        });
+        navigate(`/orders/${orderId}`);
+      }
+
+      // Set payment method from order if it exists
+      if (order.paymentMethod) {
+        setPaymentMethod(order.paymentMethod);
+      }
+    }
+  }, [order, user, navigate, toast, orderId]);
+
+  const handlePaymentMethodSelect = async (value) => {
+    if (isProcessing) return;
+
+    try {
+      setIsProcessing(true);
+      await dispatch(updatePaymentMethod({ orderId, paymentMethod: value })).unwrap();
+      setPaymentMethod(value);
+      
       toast({
-        title: "Access Denied",
-        description: "You do not have permission to access this order",
+        title: "Payment Method Updated",
+        description: "Your payment method has been updated successfully",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Could not update payment method",
         status: "error",
         duration: 5000,
         isClosable: true,
       });
-      navigate('/orders');
+      // Revert selection on error
+      setPaymentMethod(order?.paymentMethod || 'PayPal');
+    } finally {
+      setIsProcessing(false);
     }
-  }, [order, user, navigate, toast]);
-
-  const handlePaymentMethodSelect = (value) => {
-    setPaymentMethod(value);
   };
 
   const handleCashOnDelivery = async () => {
+    if (isProcessing) return;
+
     try {
-      // Update the order with COD payment method
+      setIsProcessing(true);
       await dispatch(updatePaymentMethod({ 
         orderId, 
         paymentMethod: 'Cash on Delivery' 
       })).unwrap();
       
-      navigate(`/orders/${orderId}`);
       dispatch(clearCart());
+      navigate(`/orders/${orderId}`);
       
       toast({
         title: "Order confirmed",
@@ -95,9 +162,12 @@ const CheckoutPage = () => {
         duration: 5000,
         isClosable: true,
       });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
+  // Show loading while redirecting or while data is loading
   if (loading || !order) {
     return (
       <Container maxW="container.lg" py={8}>
@@ -114,6 +184,18 @@ const CheckoutPage = () => {
         <Alert status="error">
           <AlertIcon />
           {error}
+        </Alert>
+      </Container>
+    );
+  }
+
+  // Don't show payment options if order is already paid
+  if (order.isPaid) {
+    return (
+      <Container maxW="container.lg" py={8}>
+        <Alert status="info">
+          <AlertIcon />
+          This order has already been paid for. You will be redirected to the order details page.
         </Alert>
       </Container>
     );
@@ -216,6 +298,7 @@ const CheckoutPage = () => {
                     size="lg"
                     width="full"
                     onClick={handleCashOnDelivery}
+                    isLoading={isProcessing}
                   >
                     Confirm Order (Cash on Delivery)
                   </Button>

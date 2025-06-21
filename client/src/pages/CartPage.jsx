@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {
   Box,
@@ -24,6 +24,13 @@ import {
   VStack,
   useToast,
   Skeleton,
+  useDisclosure,
+  AlertDialog,
+  AlertDialogOverlay,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogBody,
+  AlertDialogFooter,
 } from "@chakra-ui/react";
 import { HiTrash, HiPlus, HiMinus } from "react-icons/hi";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
@@ -32,8 +39,9 @@ import {
   incrementCartItem,
   decrementCartItem,
   updateCartItemQty,
+  clearCart,
 } from "../store/slices/cartSlice";
-import { createOrder } from "../store/slices/orderSlice";
+import { createOrder, resetOrder } from "../store/slices/orderSlice";
 
 const CartPage = () => {
   const dispatch = useDispatch();
@@ -43,6 +51,11 @@ const CartPage = () => {
   const { order, loading } = useSelector((state) => state.orders);
   const { user } = useSelector((state) => state.auth);
   const fallbackSrc = "https://via.placeholder.com/60x60?text=Product";
+
+  // Reset order state when component mounts
+  useEffect(() => {
+    dispatch(resetOrder());
+  }, [dispatch]);
 
   // Calculate totals
   const subtotal = cartItems.reduce(
@@ -128,6 +141,9 @@ const CartPage = () => {
     }
 
     try {
+      // Reset any existing order first
+      dispatch(resetOrder());
+
       const orderData = {
         orderItems: cartItems.map((item) => ({
           product: item._id,
@@ -138,13 +154,16 @@ const CartPage = () => {
       };
 
       const result = await dispatch(createOrder(orderData)).unwrap();
-      toast({
-        title: "Order created",
-        description: "You can now proceed to checkout",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
+      
+      if (result._id) {
+        toast({
+          title: "Order created",
+          description: "You can now proceed to checkout",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
     } catch (err) {
       toast({
         title: "Error",
@@ -167,20 +186,79 @@ const CartPage = () => {
       });
       return;
     }
+    
+    // Navigate to checkout
     navigate(`/checkout/${order._id}`);
+  };
+
+  // Add these near the top with other hooks
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const cancelRef = React.useRef();
+
+  // Add this function with other handlers
+  const handleClearCart = () => {
+    dispatch(clearCart());
+    onClose();
+    toast({
+      title: "Cart cleared",
+      description: "All items have been removed from your cart",
+      status: "info",
+      duration: 3000,
+      isClosable: true,
+    });
   };
 
   return (
     <Container maxW="container.xl" py={8}>
       <Stack spacing={8}>
-        <Heading
-          as="h1"
-          size="xl"
-          color={useColorModeValue("gray.900", "white")}
+        <Flex justify="space-between" align="center">
+          <Heading
+            as="h1"
+            size="xl"
+            color={useColorModeValue("gray.900", "white")}
+          >
+            Shopping Cart ({cartItems.length}{" "}
+            {cartItems.length === 1 ? "item" : "items"})
+          </Heading>
+          {cartItems.length > 0 && (
+            <Button
+              leftIcon={<HiTrash />}
+              colorScheme="red"
+              variant="ghost"
+              onClick={onOpen}
+            >
+              Clear Cart
+            </Button>
+          )}
+        </Flex>
+
+        {/* Confirmation Dialog */}
+        <AlertDialog
+          isOpen={isOpen}
+          leastDestructiveRef={cancelRef}
+          onClose={onClose}
         >
-          Shopping Cart ({cartItems.length}{" "}
-          {cartItems.length === 1 ? "item" : "items"})
-        </Heading>
+          <AlertDialogOverlay>
+            <AlertDialogContent>
+              <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                Clear Shopping Cart
+              </AlertDialogHeader>
+
+              <AlertDialogBody>
+                Are you sure? This will remove all items from your cart.
+              </AlertDialogBody>
+
+              <AlertDialogFooter>
+                <Button ref={cancelRef} onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button colorScheme="red" onClick={handleClearCart} ml={3}>
+                  Clear Cart
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialogOverlay>
+        </AlertDialog>
 
         {cartItems.length === 0 ? (
           <Alert status="info" rounded="lg">

@@ -61,6 +61,18 @@ class OrderService extends ApiService {
       throw error;
     }
   }
+
+  async cancelOrder(orderId) {
+    try {
+      const response = await apiClient.put(`${this.resourcePath}/${orderId}/cancel`);
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 403) {
+        throw new Error('You do not have permission to cancel this order');
+      }
+      throw error;
+    }
+  }
 }
 
 export default new OrderService();

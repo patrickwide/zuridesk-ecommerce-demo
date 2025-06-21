@@ -79,6 +79,17 @@ export const updatePaymentMethod = createAsyncThunk(
   }
 );
 
+export const cancelOrder = createAsyncThunk(
+  'orders/cancelOrder',
+  async (orderId, { rejectWithValue }) => {
+    try {
+      return await orderService.cancelOrder(orderId);
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to cancel order');
+    }
+  }
+);
+
 const initialState = {
   orders: [],
   order: null,
@@ -214,6 +225,23 @@ const orderSlice = createSlice({
         }
       })
       .addCase(updatePaymentMethod.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Cancel Order
+      .addCase(cancelOrder.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(cancelOrder.fulfilled, (state, action) => {
+        state.loading = false;
+        state.order = action.payload;
+        const index = state.orders.findIndex(o => o._id === action.payload._id);
+        if (index !== -1) {
+          state.orders[index] = action.payload;
+        }
+      })
+      .addCase(cancelOrder.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });
