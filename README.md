@@ -134,3 +134,79 @@ The application will be available at:
 ## License
 
 This project is licensed under the MIT License.
+
+## Docker Deployment
+
+The application can be run using Docker Compose, which sets up three containers:
+- MongoDB database
+- Node.js backend
+- React frontend
+
+### Prerequisites
+- Docker
+- Docker Compose
+
+### Environment Setup
+1. Copy the example environment files and configure them:
+   ```bash
+   cp example.env .env
+   cp backend/example.env backend/.env
+   cp client/example.env client/.env
+   ```
+
+2. Configure the following variables in root `.env`:
+   ```
+   MONGO_USERNAME=your_username
+   MONGO_PASSWORD=your_password
+   MONGO_DATABASE=zuridesk_db
+   PORT=5000
+   JWT_SECRET=your_jwt_secret
+   JWT_EXPIRES_IN=30d
+   NODE_ENV=development
+   ```
+
+### Running with Docker Compose
+
+1. Build and start all containers:
+   ```bash
+   docker-compose up --build
+   ```
+
+2. Start in detached mode (background):
+   ```bash
+   docker-compose up -d
+   ```
+
+3. Stop all containers:
+   ```bash
+   docker-compose down
+   ```
+
+The services will be available at:
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:5000
+- MongoDB: mongodb://localhost:27017
+
+### Container Management
+
+- View container logs:
+  ```bash
+  docker-compose logs -f [service_name]
+  ```
+
+- Restart a specific service:
+  ```bash
+  docker-compose restart [service_name]
+  ```
+
+Available service names:
+- `frontend` - React application
+- `backend` - Node.js API
+- `mongodb` - MongoDB database
+
+### Development with Docker
+
+The setup includes volume mounts for live development:
+- Frontend and backend code changes will trigger automatic rebuilds
+- MongoDB data persists across container restarts
+- Node modules are stored in named volumes for better performance
