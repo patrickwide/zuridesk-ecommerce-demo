@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   Box,
   Container,
@@ -19,53 +20,20 @@ import {
   Badge,
   Text,
   useColorModeValue,
+  Spinner,
+  Center,
+  Alert,
+  AlertIcon,
 } from '@chakra-ui/react';
+import { fetchDashboardStats } from '../../store/slices/dashboardSlice';
 
 const DashboardPage = () => {
-  // Mock statistics data - will be replaced with real data from backend
-  const stats = {
-    totalSales: {
-      value: 25899.99,
-      change: 12.5
-    },
-    totalOrders: {
-      value: 156,
-      change: 8.2
-    },
-    averageOrderValue: {
-      value: 165.89,
-      change: 3.7
-    },
-    activeUsers: {
-      value: 892,
-      change: 15.3
-    }
-  };
+  const dispatch = useDispatch();
+  const { stats, loading, error } = useSelector((state) => state.dashboard);
 
-  // Mock recent orders - will be replaced with real data from backend
-  const recentOrders = [
-    {
-      id: '1234',
-      customer: 'John Doe',
-      date: '2025-06-19',
-      total: 799.98,
-      status: 'Processing'
-    },
-    {
-      id: '1235',
-      customer: 'Jane Smith',
-      date: '2025-06-19',
-      total: 299.99,
-      status: 'Delivered'
-    },
-    {
-      id: '1236',
-      customer: 'Mike Johnson',
-      date: '2025-06-18',
-      total: 459.97,
-      status: 'Processing'
-    }
-  ];
+  useEffect(() => {
+    dispatch(fetchDashboardStats());
+  }, [dispatch]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -79,6 +47,31 @@ const DashboardPage = () => {
         return 'gray';
     }
   };
+
+  if (loading) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <Center>
+          <Spinner size="xl" />
+        </Center>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <Alert status="error">
+          <AlertIcon />
+          {error}
+        </Alert>
+      </Container>
+    );
+  }
+
+  if (!stats) {
+    return null;
+  }
 
   return (
     <Container maxW="container.xl" py={8}>
@@ -104,7 +97,7 @@ const DashboardPage = () => {
               <StatNumber>${stats.totalSales.value.toLocaleString()}</StatNumber>
               <StatHelpText>
                 <StatArrow type={stats.totalSales.change > 0 ? 'increase' : 'decrease'} />
-                {stats.totalSales.change}%
+                {stats.totalSales.change.toFixed(1)}%
               </StatHelpText>
             </Stat>
           </Box>
@@ -120,7 +113,7 @@ const DashboardPage = () => {
               <StatNumber>{stats.totalOrders.value}</StatNumber>
               <StatHelpText>
                 <StatArrow type={stats.totalOrders.change > 0 ? 'increase' : 'decrease'} />
-                {stats.totalOrders.change}%
+                {stats.totalOrders.change.toFixed(1)}%
               </StatHelpText>
             </Stat>
           </Box>
@@ -133,10 +126,10 @@ const DashboardPage = () => {
           >
             <Stat>
               <StatLabel>Average Order Value</StatLabel>
-              <StatNumber>${stats.averageOrderValue.value}</StatNumber>
+              <StatNumber>${stats.averageOrderValue.value.toFixed(2)}</StatNumber>
               <StatHelpText>
                 <StatArrow type={stats.averageOrderValue.change > 0 ? 'increase' : 'decrease'} />
-                {stats.averageOrderValue.change}%
+                {stats.averageOrderValue.change.toFixed(1)}%
               </StatHelpText>
             </Stat>
           </Box>
@@ -152,7 +145,7 @@ const DashboardPage = () => {
               <StatNumber>{stats.activeUsers.value}</StatNumber>
               <StatHelpText>
                 <StatArrow type={stats.activeUsers.change > 0 ? 'increase' : 'decrease'} />
-                {stats.activeUsers.change}%
+                {stats.activeUsers.change.toFixed(1)}%
               </StatHelpText>
             </Stat>
           </Box>
@@ -178,11 +171,11 @@ const DashboardPage = () => {
                 </Tr>
               </Thead>
               <Tbody>
-                {recentOrders.map((order) => (
+                {stats.recentOrders.map((order) => (
                   <Tr key={order.id}>
-                    <Td>#{order.id}</Td>
+                    <Td>#{order.id.slice(-6)}</Td>
                     <Td>{order.customer}</Td>
-                    <Td>{order.date}</Td>
+                    <Td>{new Date(order.date).toLocaleDateString()}</Td>
                     <Td>${order.total.toFixed(2)}</Td>
                     <Td>
                       <Badge colorScheme={getStatusColor(order.status)}>
@@ -195,8 +188,6 @@ const DashboardPage = () => {
             </Table>
           </Stack>
         </Box>
-
-        {/* Additional sections for charts and analytics can be added here */}
       </Stack>
     </Container>
   );

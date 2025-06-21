@@ -6,6 +6,21 @@ class OrderService extends ApiService {
     super('/api/orders');
   }
 
+  async getAll(params = {}) {
+    const { search, status, paymentStatus } = params;
+    const queryParams = new URLSearchParams();
+    
+    if (search) queryParams.append('search', search);
+    if (status && status !== 'all') queryParams.append('status', status);
+    if (paymentStatus && paymentStatus !== 'all') queryParams.append('paymentStatus', paymentStatus);
+    
+    const queryString = queryParams.toString();
+    const url = `${this.resourcePath}${queryString ? `?${queryString}` : ''}`;
+    
+    const response = await apiClient.get(url);
+    return response.data;
+  }
+
   async getMyOrders(params = {}) {
     const { search, status, period } = params;
     const queryParams = new URLSearchParams();

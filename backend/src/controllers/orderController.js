@@ -1,6 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
+import User from '../models/User.js';
 import mongoose from 'mongoose';
 
 // @desc    Create new order
@@ -238,8 +239,55 @@ const getMyOrders = asyncHandler(async (req, res) => {
 // @route   GET /api/orders
 // @access  Private/Admin
 const getOrders = asyncHandler(async (req, res) => {
-  const orders = await Order.find({}).populate('user', 'id name');
-  res.json(orders);
+  const { search, status, paymentStatus } = req.query;
+  
+  // Base query
+  let query = {};
+  
+  // Add status filter if provided
+  if (status && status !== 'all') {
+    query.status = status;
+  }
+  
+  // Add payment status filter
+  if (paymentStatus && paymentStatus !== 'all') {
+    query.isPaid = paymentStatus === 'Paid';
+  }
+  
+  // Add search filter if provided
+  if (search) {
+    const searchRegex = new RegExp(search, 'i');
+    query.$or = [
+      { 'orderItems.name': searchRegex },
+      { 'shippingAddress.name': searchRegex },
+      { 'shippingAddress.address': searchRegex },
+      { 'shippingAddress.city': searchRegex },
+      { 'shippingAddress.county': searchRegex }
+    ];
+  }
+
+  const orders = await Order.find(query)
+    .populate('user', 'name email')
+    .sort({ createdAt: -1 }) // Sort by latest first
+    .select('-__v') // Exclude version field
+    .lean(); // Convert to plain objects for better performance
+  
+  if (orders.length === 0) {
+    return res.json({ 
+      orders: [],
+      message: "No orders found matching your criteria."
+    });
+  }
+  
+  // Format dates for consistency
+  const formattedOrders = orders.map(order => ({
+    ...order,
+    createdAt: order.createdAt?.toISOString(),
+    paidAt: order.paidAt?.toISOString(),
+    deliveredAt: order.deliveredAt?.toISOString(),
+  }));
+  
+  res.json(formattedOrders);
 });
 
 // @desc    Update order payment method
@@ -303,6 +351,85 @@ const cancelOrder = asyncHandler(async (req, res) => {
   res.json(updatedOrder);
 });
 
+// @desc    Get dashboard statistics
+// @route   GET /api/orders/stats
+// @access  Private/Admin
+const getDashboardStats = asyncHandler(async (req, res) => {
+  // Get current date and date 30 days ago for comparison
+  const today = new Date();
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const sixtyDaysAgo = new Date();
+  sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+  // Current period stats
+  const currentPeriodOrders = await Order.find({
+    createdAt: { $gte: thirtyDaysAgo },
+    status: { $ne: 'Cancelled' }
+  });
+
+  // Previous period stats for comparison
+  const previousPeriodOrders = await Order.find({
+    createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo },
+    status: { $ne: 'Cancelled' }
+  });
+
+  // Active users count (users who placed orders in last 30 days)
+  const activeUsers = await Order.distinct('user', {
+    createdAt: { $gte: thirtyDaysAgo }
+  });
+
+  // Calculate current period metrics
+  const currentTotalSales = currentPeriodOrders.reduce((sum, order) => sum + order.total, 0);
+  const currentOrderCount = currentPeriodOrders.length;
+  const currentAverageOrderValue = currentOrderCount > 0 ? currentTotalSales / currentOrderCount : 0;
+
+  // Calculate previous period metrics for comparison
+  const previousTotalSales = previousPeriodOrders.reduce((sum, order) => sum + order.total, 0);
+  const previousOrderCount = previousPeriodOrders.length;
+  const previousAverageOrderValue = previousOrderCount > 0 ? previousTotalSales / previousOrderCount : 0;
+
+  // Calculate percentage changes
+  const calculatePercentageChange = (current, previous) => {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return ((current - previous) / previous) * 100;
+  };
+
+  // Get recent orders
+  const recentOrders = await Order.find()
+    .sort({ createdAt: -1 })
+    .limit(5)
+    .populate('user', 'name email');
+
+  const stats = {
+    totalSales: {
+      value: currentTotalSales,
+      change: calculatePercentageChange(currentTotalSales, previousTotalSales)
+    },
+    totalOrders: {
+      value: currentOrderCount,
+      change: calculatePercentageChange(currentOrderCount, previousOrderCount)
+    },
+    averageOrderValue: {
+      value: currentAverageOrderValue,
+      change: calculatePercentageChange(currentAverageOrderValue, previousAverageOrderValue)
+    },
+    activeUsers: {
+      value: activeUsers.length,
+      change: calculatePercentageChange(activeUsers.length, previousPeriodOrders.length)
+    },
+    recentOrders: recentOrders.map(order => ({
+      id: order._id,
+      customer: order.user.name,
+      date: order.createdAt,
+      total: order.total,
+      status: order.status
+    }))
+  };
+
+  res.json(stats);
+});
+
 export {
   createOrder,
   getOrderById,
@@ -312,4 +439,5 @@ export {
   getOrders,
   updateOrderPaymentMethod,
   cancelOrder,
+  getDashboardStats,
 };

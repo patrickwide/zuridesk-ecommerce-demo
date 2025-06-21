@@ -8,6 +8,7 @@ import {
   getOrders,
   updateOrderPaymentMethod,
   cancelOrder,
+  getDashboardStats,
 } from '../controllers/orderController.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
 
@@ -177,6 +178,24 @@ const router = express.Router();
 router.route('/')
   .post(protect, createOrder)
   .get(protect, admin, getOrders);
+
+/**
+ * @swagger
+ * /api/orders/stats:
+ *   get:
+ *     summary: Get dashboard statistics (admin only)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard statistics
+ *       401:
+ *         description: Not authorized
+ *       403:
+ *         description: Not admin
+ */
+router.route('/stats').get(protect, admin, getDashboardStats);
 
 /**
  * @swagger
