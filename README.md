@@ -210,3 +210,50 @@ The setup includes volume mounts for live development:
 - Frontend and backend code changes will trigger automatic rebuilds
 - MongoDB data persists across container restarts
 - Node modules are stored in named volumes for better performance
+
+## Environment Configuration
+
+The project uses three separate `.env` files for different parts of the application:
+
+### Root Directory `.env`
+Contains shared environment variables used by Docker Compose:
+```
+PORT=5000
+MONGO_USERNAME=zuridesk_admin
+MONGO_PASSWORD=your_secure_password
+MONGO_DATABASE=zuridesk_db
+NODE_ENV=development
+JWT_SECRET=your_jwt_secret_key_here
+JWT_EXPIRES_IN=30d
+```
+
+### Backend `.env` (`/backend/.env`)
+Contains backend-specific configuration:
+```
+PORT=5000
+MONGO_USERNAME=zuridesk_admin
+MONGO_PASSWORD=your_secure_password
+MONGO_DATABASE=zuridesk_db
+MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/${MONGO_DATABASE}?authSource=admin
+JWT_SECRET=your_jwt_secret_key_here
+JWT_EXPIRES_IN=30d
+NODE_ENV=development
+```
+
+### Frontend `.env` (`/client/.env`)
+Contains frontend-specific configuration:
+```
+VITE_PAYPAL_CLIENT_ID=<VITE_PAYPAL_CLIENT_ID>
+```
+
+To set up the environment:
+1. Copy the example environment files:
+   ```bash
+   cp example.env .env
+   cp backend/example.env backend/.env
+   cp client/example.env client/.env
+   ```
+2. Update each `.env` file with your specific configuration values
+3. Make sure to replace `<VITE_PAYPAL_CLIENT_ID>` with your actual PayPal client ID
+
+> **Note**: Never commit `.env` files to version control. The example files are provided as templates.
