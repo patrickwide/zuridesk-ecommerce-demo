@@ -34,6 +34,7 @@ import {
   HiMoon,
   HiSun,
   HiShoppingCart,
+  HiHeart,
 } from 'react-icons/hi';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { logout } from '../store/slices/authSlice';
@@ -75,6 +76,29 @@ const NAV_ITEMS = [
     label: 'My Orders',
     href: '/orders',
     id: 'user-orders',
+    private: true,
+  },
+  {
+    label: (props) => {
+      const { wishlistItems } = useSelector((state) => state.wishlist);
+      return (
+        <HStack spacing={2}>
+          <HiHeart size={18} />
+          <Box as="span">Wishlist</Box>
+          {wishlistItems.length > 0 && (
+            <Badge
+              colorScheme="pink"
+              borderRadius="full"
+              px={2}
+            >
+              {wishlistItems.length}
+            </Badge>
+          )}
+        </HStack>
+      );
+    },
+    href: '/wishlist',
+    id: 'wishlist',
     private: true,
   },
 ];

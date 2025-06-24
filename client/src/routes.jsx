@@ -14,6 +14,7 @@ import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
 import OrdersPage from './pages/OrdersPage';
 import OrderDetailsPage from './pages/OrderDetailsPage';
+import WishlistPage from './pages/WishlistPage';
 import AdminDashboardPage from './pages/admin/DashboardPage';
 import AdminProductsPage from './pages/admin/ProductsPage';
 import AdminOrdersPage from './pages/admin/OrdersPage';
@@ -75,6 +76,14 @@ export const MainRoutes = () => (
           <OrderProtectedRoute>
             <OrderDetailsPage />
           </OrderProtectedRoute>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/wishlist"
+      element={
+        <ProtectedRoute>
+          <WishlistPage />
         </ProtectedRoute>
       }
     />

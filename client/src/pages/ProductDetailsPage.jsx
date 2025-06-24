@@ -58,15 +58,19 @@ import {
 } from 'react-icons/hi';
 import { fetchProductById } from '../store/slices/productSlice';
 import AddToCart from '../components/ui/AddToCart';
+import { addToWishlist, removeFromWishlist } from '../store/actions/wishlistActions';
 
 const ProductDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { product, loading, error } = useSelector((state) => state.products);
-  const [isWishListed, setIsWishListed] = useState(false);
+  const { wishlistItems } = useSelector((state) => state.wishlist);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
+
+  // Check if product is in wishlist
+  const isInWishlist = wishlistItems.some(item => item._id === id);
 
   // Move ALL useColorModeValue calls to the top level - they must be called on every render
   const cardBg = useColorModeValue('white', 'gray.800');
@@ -81,8 +85,11 @@ const ProductDetailsPage = () => {
   }, [dispatch, id]);
 
   const handleToggleWishlist = () => {
-    setIsWishListed(!isWishListed);
-    // Add wishlist logic here when implementing wishlist feature
+    if (isInWishlist) {
+      dispatch(removeFromWishlist(id));
+    } else {
+      dispatch(addToWishlist(product));
+    }
   };
 
   const handleShare = async () => {
@@ -196,9 +203,9 @@ const ProductDetailsPage = () => {
                   variant="outline"
                   flex="1"
                   leftIcon={<HiHeart />}
-                  colorScheme={isWishListed ? "pink" : "gray"}
+                  colorScheme={isInWishlist ? "pink" : "gray"}
                 >
-                  {isWishListed ? "Wishlisted" : "Add to Wishlist"}
+                  {isInWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
                 </Button>
                 
                 <Button
