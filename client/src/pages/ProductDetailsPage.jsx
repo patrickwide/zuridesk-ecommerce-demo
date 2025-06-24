@@ -43,6 +43,7 @@ import {
   AlertIcon,
   Center,
   Spinner,
+  useToast,
 } from '@chakra-ui/react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -55,19 +56,26 @@ import {
   HiHeart,
   HiShare,
   HiPencilAlt,
+  HiTrash,
 } from 'react-icons/hi';
 import { fetchProductById } from '../store/slices/productSlice';
 import AddToCart from '../components/ui/AddToCart';
 import { addToWishlist, removeFromWishlist } from '../store/actions/wishlistActions';
+import { createReview, deleteReview } from '../store/actions/reviewActions';
 
 const ProductDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const toast = useToast();  // Add useToast hook
   const { product, loading, error } = useSelector((state) => state.products);
   const { wishlistItems } = useSelector((state) => state.wishlist);
+  const { user } = useSelector((state) => state.auth);
+  const { loading: isReviewLoading, error: reviewError } = useSelector((state) => state.reviews);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
 
   // Check if product is in wishlist
   const isInWishlist = wishlistItems.some(item => item._id === id);
@@ -106,6 +114,77 @@ const ProductDetailsPage = () => {
     }
   };
 
+  const handleSubmitReview = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please login to submit a review",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      navigate('/login?redirect=products/' + id);
+      return;
+    }
+
+    if (!rating || !comment.trim()) {
+      toast({
+        title: "Required fields missing",
+        description: "Please provide both rating and comment",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      await dispatch(createReview({ productId: id, review: { rating, comment } })).unwrap();
+      
+      setRating(0);
+      setComment('');
+      setIsReviewModalOpen(false);
+
+      toast({
+        title: "Review submitted",
+        description: "Thank you for your review!",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: "Review Error",
+        description: typeof error === 'string' ? error : error?.message || "Could not submit review",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleDeleteReview = async (reviewId) => {
+    try {
+      dispatch(deleteReview(id, reviewId));
+      
+      toast({
+        title: "Review deleted",
+        description: "Your review has been removed",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Could not delete review",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
   if (loading) {
     return (
       <Container maxW="container.xl" py={8}>
@@ -137,6 +216,9 @@ const ProductDetailsPage = () => {
       </Container>
     );
   }
+
+  // Get reviews for this product
+  const reviews = product?.reviews || [];
 
   return (
     <Container maxW="container.xl" py={8}>
@@ -288,26 +370,48 @@ const ProductDetailsPage = () => {
 
             <TabPanel>
               <VStack align="stretch" spacing={4}>
-                {product.reviews && product.reviews.length > 0 ? (
-                  product.reviews.map((review, index) => (
+                {reviews.length > 0 ? (
+                  reviews.map((review) => (
                     <Box
-                      key={index}
+                      key={review._id}
                       p={4}
                       bg={reviewBg}
                       rounded="md"
+                      position="relative"
                     >
-                      <HStack mb={2}>
-                        <Text fontWeight="bold">{review.name}</Text>
-                        <HStack color="yellow.400">
-                          {Array(5).fill('').map((_, i) => (
-                            <HiStar
-                              key={i}
-                              opacity={i < review.rating ? 1 : 0.3}
-                            />
-                          ))}
+                      <HStack mb={2} justify="space-between">
+                        <HStack>
+                          <Text fontWeight="bold">{review.name}</Text>
+                          <HStack color="yellow.400">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <HiStar
+                                key={star}
+                                opacity={star <= review.rating ? 1 : 0.3}
+                              />
+                            ))}
+                          </HStack>
                         </HStack>
+                        <Text color="gray.500" fontSize="sm">
+                          {new Date(review.createdAt).toLocaleDateString()}
+                        </Text>
                       </HStack>
                       <Text>{review.comment}</Text>
+                      
+                      {/* Show delete button if user owns review or is admin */}
+                      {(user?._id === review.user || user?.isAdmin) && (
+                        <IconButton
+                          position="absolute"
+                          top={2}
+                          right={2}
+                          size="sm"
+                          icon={<HiTrash />}
+                          colorScheme="red"
+                          variant="ghost"
+                          onClick={() => handleDeleteReview(review._id)}
+                          isLoading={isReviewLoading}
+                          aria-label="Delete review"
+                        />
+                      )}
                     </Box>
                   ))
                 ) : (
@@ -355,28 +459,38 @@ const ProductDetailsPage = () => {
           <ModalCloseButton />
           <ModalBody pb={6}>
             <Stack spacing={4}>
-              <FormControl>
+              <FormControl isRequired>
                 <FormLabel>Rating</FormLabel>
                 <HStack spacing={2}>
-                  {[1, 2, 3, 4, 5].map((rating) => (
+                  {[1, 2, 3, 4, 5].map((star) => (
                     <IconButton
-                      key={rating}
+                      key={star}
                       icon={<HiStar />}
                       variant="ghost"
-                      color="yellow.400"
-                      aria-label={`Rate ${rating} stars`}
+                      color={star <= rating ? "yellow.400" : "gray.300"}
+                      onClick={() => setRating(star)}
+                      aria-label={`Rate ${star} stars`}
                     />
                   ))}
                 </HStack>
               </FormControl>
-              <FormControl>
+              <FormControl isRequired>
                 <FormLabel>Review</FormLabel>
-                <Textarea placeholder="Share your thoughts about this product..." />
+                <Textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Share your thoughts about this product..."
+                />
               </FormControl>
             </Stack>
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="blue" mr={3}>
+            <Button 
+              colorScheme="blue" 
+              mr={3} 
+              onClick={handleSubmitReview}
+              isLoading={isReviewLoading}
+            >
               Submit Review
             </Button>
             <Button onClick={() => setIsReviewModalOpen(false)}>Cancel</Button>

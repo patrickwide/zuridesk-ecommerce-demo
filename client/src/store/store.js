@@ -6,6 +6,7 @@ import orderReducer from './slices/orderSlice';
 import productReducer from './slices/productSlice';
 import dashboardReducer from './slices/dashboardSlice';
 import wishlistReducer from './reducers/wishlistReducer';
+import reviewReducer from './reducers/reviewReducer';
 
 export const store = configureStore({
   reducer: {
@@ -16,6 +17,7 @@ export const store = configureStore({
     products: productReducer,
     dashboard: dashboardReducer,
     wishlist: wishlistReducer,
+    reviews: reviewReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

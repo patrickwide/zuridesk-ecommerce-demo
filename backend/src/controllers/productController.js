@@ -156,6 +156,92 @@ const deleteProduct = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc    Create new review
+// @route   POST /api/products/:id/reviews
+// @access  Private
+const createProductReview = asyncHandler(async (req, res) => {
+  const { rating, comment } = req.body;
+
+  const product = await Product.findById(req.params.id);
+
+  if (!product) {
+    res.status(404);
+    throw new Error('Product not found');
+  }
+
+  // Check if user already reviewed
+  const alreadyReviewed = product.reviews.find(
+    (r) => r.user.toString() === req.user._id.toString()
+  );
+
+  if (alreadyReviewed) {
+    res.status(400);
+    throw new Error('Product already reviewed');
+  }
+
+  const review = {
+    name: req.user.name,
+    rating: Number(rating),
+    comment,
+    user: req.user._id,
+  };
+
+  product.reviews.push(review);
+  product.numReviews = product.reviews.length;
+  product.rating =
+    product.reviews.reduce((acc, item) => item.rating + acc, 0) /
+    product.reviews.length;
+
+  await product.save();
+  res.status(201).json({ message: 'Review added' });
+});
+
+// @desc    Delete review
+// @route   DELETE /api/products/:id/reviews/:reviewId
+// @access  Private
+const deleteProductReview = asyncHandler(async (req, res) => {
+  const product = await Product.findById(req.params.id);
+
+  if (!product) {
+    res.status(404);
+    throw new Error('Product not found');
+  }
+
+  // Find review
+  const review = product.reviews.find(
+    (r) => r._id.toString() === req.params.reviewId
+  );
+
+  if (!review) {
+    res.status(404);
+    throw new Error('Review not found');
+  }
+
+  // Check ownership
+  if (review.user.toString() !== req.user._id.toString() && !req.user.isAdmin) {
+    res.status(403);
+    throw new Error('Not authorized to delete this review');
+  }
+
+  // Remove review
+  product.reviews = product.reviews.filter(
+    (r) => r._id.toString() !== req.params.reviewId
+  );
+
+  // Update ratings
+  product.numReviews = product.reviews.length;
+  if (product.numReviews > 0) {
+    product.rating =
+      product.reviews.reduce((acc, item) => item.rating + acc, 0) /
+      product.reviews.length;
+  } else {
+    product.rating = 0;
+  }
+
+  await product.save();
+  res.json({ message: 'Review removed' });
+});
+
 export {
   getProducts,
   getProductById,
@@ -163,4 +249,6 @@ export {
   createProduct,
   updateProduct,
   deleteProduct,
+  createProductReview,
+  deleteProductReview,
 };

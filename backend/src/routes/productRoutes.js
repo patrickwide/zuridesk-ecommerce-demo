@@ -6,6 +6,8 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
+  createProductReview,
+  deleteProductReview,
 } from '../controllers/productController.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
 
@@ -191,5 +193,81 @@ router.route('/:id').put(protect, admin, updateProduct);
  *         description: Server error
  */
 router.route('/:id').delete(protect, admin, deleteProduct);
+
+/**
+ * @swagger
+ * /api/products/{id}/reviews:
+ *   post:
+ *     summary: Create a product review
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Product ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - rating
+ *               - comment
+ *             properties:
+ *               rating:
+ *                 type: number
+ *               comment:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Review created successfully
+ *       400:
+ *         description: Invalid review data
+ *       401:
+ *         description: Not authorized
+ *       404:
+ *         description: Product not found
+ *       500:
+ *         description: Server error
+ */
+router.route('/:id/reviews').post(protect, createProductReview);
+
+/**
+ * @swagger
+ * /api/products/{id}/reviews/{reviewId}:
+ *   delete:
+ *     summary: Delete a product review
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Product ID
+ *       - in: path
+ *         name: reviewId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Review ID
+ *     responses:
+ *       204:
+ *         description: Review deleted successfully
+ *       401:
+ *         description: Not authorized
+ *       404:
+ *         description: Product or review not found
+ *       500:
+ *         description: Server error
+ */
+router.route('/:id/reviews/:reviewId').delete(protect, deleteProductReview);
 
 export default router;

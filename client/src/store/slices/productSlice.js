@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import productService from '../../services/productService';
+import axios from 'axios';
 
 // Async thunks
 export const fetchProducts = createAsyncThunk(
@@ -58,6 +59,60 @@ export const deleteProduct = createAsyncThunk(
   }
 );
 
+// Create review thunk
+export const createReview = createAsyncThunk(
+  'products/createReview',
+  async ({ productId, review }, { getState, rejectWithValue }) => {
+    try {
+      const { token } = getState().auth;
+      const config = {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      };
+
+      const { data } = await axios.post(
+        `/api/products/${productId}/reviews`,
+        review,
+        config
+      );
+
+      return data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || error.message
+      );
+    }
+  }
+);
+
+// Delete review thunk
+export const deleteReview = createAsyncThunk(
+  'products/deleteReview',
+  async ({ productId, reviewId }, { getState, rejectWithValue }) => {
+    try {
+      const { token } = getState().auth;
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      };
+
+      await axios.delete(
+        `/api/products/${productId}/reviews/${reviewId}`,
+        config
+      );
+
+      return reviewId;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || error.message
+      );
+    }
+  }
+);
+
 const initialState = {
   products: [],
   product: null,
@@ -65,7 +120,9 @@ const initialState = {
   error: null,
   page: 1,
   pages: 1,
-  total: 0
+  total: 0,
+  isReviewLoading: false,
+  reviewError: null,
 };
 
 const productSlice = createSlice({
@@ -159,6 +216,42 @@ const productSlice = createSlice({
       .addCase(deleteProduct.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      // Create Review
+      .addCase(createReview.pending, (state) => {
+        state.isReviewLoading = true;
+        state.reviewError = null;
+      })
+      .addCase(createReview.fulfilled, (state, action) => {
+        state.isReviewLoading = false;
+        state.product.reviews.push(action.payload);
+        state.product.numReviews = state.product.reviews.length;
+        state.product.rating = 
+          state.product.reviews.reduce((acc, item) => item.rating + acc, 0) / 
+          state.product.reviews.length;
+      })
+      .addCase(createReview.rejected, (state, action) => {
+        state.isReviewLoading = false;
+        state.reviewError = action.payload;
+      })
+      // Delete Review
+      .addCase(deleteReview.pending, (state) => {
+        state.isReviewLoading = true;
+        state.reviewError = null;
+      })
+      .addCase(deleteReview.fulfilled, (state, action) => {
+        state.isReviewLoading = false;
+        state.product.reviews = state.product.reviews.filter(
+          (review) => review._id !== action.payload
+        );
+        state.product.numReviews = state.product.reviews.length;
+        state.product.rating = state.product.reviews.length > 0 ?
+          state.product.reviews.reduce((acc, item) => item.rating + acc, 0) / 
+          state.product.reviews.length : 0;
+      })
+      .addCase(deleteReview.rejected, (state, action) => {
+        state.isReviewLoading = false;
+        state.reviewError = action.error.message;
       });
   }
 });
