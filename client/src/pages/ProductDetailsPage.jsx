@@ -141,6 +141,9 @@ const ProductDetailsPage = () => {
     try {
       await dispatch(createReview({ productId: id, review: { rating, comment } })).unwrap();
       
+      // Fetch fresh product data to update the reviews
+      await dispatch(fetchProductById(id));
+      
       setRating(0);
       setComment('');
       setIsReviewModalOpen(false);
@@ -165,7 +168,10 @@ const ProductDetailsPage = () => {
 
   const handleDeleteReview = async (reviewId) => {
     try {
-      dispatch(deleteReview(id, reviewId));
+      await dispatch(deleteReview({ productId: id, reviewId })).unwrap();
+      
+      // Fetch fresh product data to update the reviews
+      await dispatch(fetchProductById(id));
       
       toast({
         title: "Review deleted",

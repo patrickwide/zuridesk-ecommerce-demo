@@ -33,7 +33,7 @@ const categories = [
 		name: 'Electronics',
 		description: 'Keyboards, mice, and other electronic accessories',
 		slug: 'electronics',
-		image: 'https://images.unsplash.com/photo-1563191911-e65f8655ebf9?auto=format&fit=crop&w=800&q=80',
+		image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=800&q=80',
 	},
 ];
 
