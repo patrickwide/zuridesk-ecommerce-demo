@@ -15,7 +15,7 @@ export const createReview = createAsyncThunk(
       };
 
       const { data } = await apiClient.post(
-        `/api/products/${productId}/reviews`,
+        `/products/${productId}/reviews`,
         review,
         config
       );
@@ -40,7 +40,7 @@ export const deleteReview = createAsyncThunk(
       };
 
       await apiClient.delete(
-        `/api/products/${productId}/reviews/${reviewId}`,
+        `/products/${productId}/reviews/${reviewId}`,
         config
       );
 

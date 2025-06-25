@@ -52,9 +52,9 @@ The API documentation is available at http://localhost:5000/api-docs when the se
 
 ## API Endpoints
 
-- `/api/products` - Product management
-- `/api/users` - User management
-- `/api/orders` - Order management
-- `/api/categories` - Category management
+- `/products` - Product management
+- `/users` - User management
+- `/orders` - Order management
+- `/categories` - Category management
 
 For detailed API documentation, please visit the Swagger documentation at http://localhost:5000/api-docs

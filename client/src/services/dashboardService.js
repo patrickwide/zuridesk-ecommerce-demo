@@ -2,7 +2,7 @@ import ApiService from './apiService';
 
 class DashboardService extends ApiService {
   constructor() {
-    super('/api/orders'); // prefix since it's not in apiClient baseURL
+    super('/orders'); // prefix since it's not in apiClient baseURL
   }
 
   async getStats() {

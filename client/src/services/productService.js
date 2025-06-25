@@ -3,7 +3,7 @@ import apiClient from '../config/api';
 
 class ProductService extends ApiService {
   constructor() {
-    super('/api/products');
+    super('/products');
   }
 
   async getByCategory(categoryId) {

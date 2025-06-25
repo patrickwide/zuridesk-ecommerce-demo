@@ -3,7 +3,7 @@ import apiClient from '../config/api';
 
 class OrderService extends ApiService {
   constructor() {
-    super('/api/orders');
+    super('/orders');
   }
 
   async getAll(params = {}) {

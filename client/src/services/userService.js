@@ -3,7 +3,7 @@ import apiClient from '../config/api';
 
 class UserService extends ApiService {
   constructor() {
-    super('/api/users');
+    super('/users');
   }
 
   async login(email, password) {

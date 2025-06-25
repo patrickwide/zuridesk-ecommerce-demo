@@ -73,7 +73,7 @@ export const createReview = createAsyncThunk(
       };
 
       const { data } = await axios.post(
-        `/api/products/${productId}/reviews`,
+        `/products/${productId}/reviews`,
         review,
         config
       );
@@ -100,7 +100,7 @@ export const deleteReview = createAsyncThunk(
       };
 
       await axios.delete(
-        `/api/products/${productId}/reviews/${reviewId}`,
+        `/products/${productId}/reviews/${reviewId}`,
         config
       );
 
